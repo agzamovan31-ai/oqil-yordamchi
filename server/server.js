@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -9,9 +8,12 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const MODEL = "qwen2.5:7b";
 
-if (!process.env.JWT_SECRET || !process.env.OWNER_USERNAME || !process.env.OWNER_PASSWORD) {
+if (
+  !process.env.JWT_SECRET ||
+  !process.env.OWNER_USERNAME ||
+  !process.env.OWNER_PASSWORD
+) {
   throw new Error(".env faylida kerakli sozlamalar yo‘q.");
 }
 
@@ -22,9 +24,12 @@ if (process.env.OWNER_PASSWORD.length < 12) {
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
 }));
+
 app.use(express.json({ limit: "20kb" }));
 
+// Ma'lumotlar bazasi
 const db = new Database("data.sqlite");
+
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
@@ -47,6 +52,7 @@ if (!ustunlar.some(ustun => ustun.name === "created_by")) {
   db.exec("ALTER TABLE users ADD COLUMN created_by INTEGER");
 }
 
+// EGA akkaunti
 const ownerName = process.env.OWNER_USERNAME.trim();
 
 const owner = db.prepare(
@@ -76,12 +82,16 @@ if (!owner) {
   console.log("EGA akkaunti yaratildi.");
 }
 
+// Login cheklovi
 const loginLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
-  message: { error: "Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring." }
+  message: {
+    error: "Juda ko‘p urinish. Keyinroq qayta urinib ko‘ring."
+  }
 });
 
+// Token yaratish
 function tokenYaratish(user) {
   return jwt.sign(
     { id: user.id },
@@ -90,12 +100,15 @@ function tokenYaratish(user) {
   );
 }
 
+// Foydalanuvchini tekshirish
 function tekshirish(req, res, next) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ error: "Tizimga kiring." });
+      return res.status(401).json({
+        error: "Tizimga kiring."
+      });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -105,30 +118,44 @@ function tekshirish(req, res, next) {
     ).get(decoded.id);
 
     if (!user) {
-      return res.status(401).json({ error: "Hisob topilmadi." });
+      return res.status(401).json({
+        error: "Hisob topilmadi."
+      });
     }
 
     req.user = user;
     next();
+
   } catch {
-    res.status(401).json({ error: "Kirish muddati tugagan. Qayta kiring." });
+    res.status(401).json({
+      error: "Kirish muddati tugagan. Qayta kiring."
+    });
   }
 }
 
+// Faqat EGA
 function faqatEga(req, res, next) {
   if (req.user.role !== "owner") {
-    return res.status(403).json({ error: "Bu amal faqat EGA uchun." });
+    return res.status(403).json({
+      error: "Bu amal faqat EGA uchun."
+    });
   }
+
   next();
 }
 
+// Admin yoki EGA
 function faqatAdmin(req, res, next) {
   if (!["owner", "admin"].includes(req.user.role)) {
-    return res.status(403).json({ error: "Ruxsat yo‘q." });
+    return res.status(403).json({
+      error: "Ruxsat yo‘q."
+    });
   }
+
   next();
 }
 
+// Ruxsatlarni olish
 function ruxsatlar(user) {
   try {
     return JSON.parse(user.permissions || "{}");
@@ -137,8 +164,11 @@ function ruxsatlar(user) {
   }
 }
 
+// Backend tekshirish
 app.get("/", (req, res) => {
-  res.json({ xabar: "AI backend ishlayapti." });
+  res.json({
+    xabar: "AI backend ishlayapti."
+  });
 });
 
 // Ro‘yxatdan o‘tish
@@ -155,7 +185,11 @@ app.post("/api/auth/register", (req, res) => {
       });
     }
 
-    if (typeof password !== "string" || password.length < 8 || password.length > 72) {
+    if (
+      typeof password !== "string" ||
+      password.length < 8 ||
+      password.length > 72
+    ) {
       return res.status(400).json({
         error: "Parol 8–72 ta belgi bo‘lishi kerak."
       });
@@ -177,13 +211,19 @@ app.post("/api/auth/register", (req, res) => {
       token: tokenYaratish(user),
       user
     });
+
   } catch (error) {
     if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
-      return res.status(409).json({ error: "Bu username band." });
+      return res.status(409).json({
+        error: "Bu username band."
+      });
     }
 
     console.error(error);
-    res.status(500).json({ error: "Hisob yaratilmadi." });
+
+    res.status(500).json({
+      error: "Hisob yaratilmadi."
+    });
   }
 });
 
@@ -191,8 +231,13 @@ app.post("/api/auth/register", (req, res) => {
 app.post("/api/auth/login", loginLimit, (req, res) => {
   const { username, password } = req.body;
 
-  if (typeof username !== "string" || typeof password !== "string") {
-    return res.status(400).json({ error: "Username va parolni kiriting." });
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string"
+  ) {
+    return res.status(400).json({
+      error: "Username va parolni kiriting."
+    });
   }
 
   const user = db.prepare(
@@ -200,7 +245,9 @@ app.post("/api/auth/login", loginLimit, (req, res) => {
   ).get(username.trim());
 
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: "Username yoki parol noto‘g‘ri." });
+    return res.status(401).json({
+      error: "Username yoki parol noto‘g‘ri."
+    });
   }
 
   res.json({
@@ -216,7 +263,9 @@ app.post("/api/auth/login", loginLimit, (req, res) => {
 
 // Joriy foydalanuvchi
 app.get("/api/auth/me", tekshirish, (req, res) => {
-  res.json({ user: req.user });
+  res.json({
+    user: req.user
+  });
 });
 
 // EGA barcha foydalanuvchilarni ko‘radi
@@ -248,7 +297,10 @@ app.post("/api/admin/users", tekshirish, faqatAdmin, (req, res) => {
     const { username, password } = req.body;
     const permissions = ruxsatlar(req.user);
 
-    if (req.user.role === "admin" && permissions.canAddUsers !== true) {
+    if (
+      req.user.role === "admin" &&
+      permissions.canAddUsers !== true
+    ) {
       return res.status(403).json({
         error: "Foydalanuvchi qo‘shishga ruxsat yo‘q."
       });
@@ -278,13 +330,19 @@ app.post("/api/admin/users", tekshirish, faqatAdmin, (req, res) => {
       id: result.lastInsertRowid,
       username: username.trim()
     });
+
   } catch (error) {
     if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
-      return res.status(409).json({ error: "Bu username band." });
+      return res.status(409).json({
+        error: "Bu username band."
+      });
     }
 
     console.error(error);
-    res.status(500).json({ error: "Foydalanuvchi qo‘shilmadi." });
+
+    res.status(500).json({
+      error: "Foydalanuvchi qo‘shilmadi."
+    });
   }
 });
 
@@ -293,7 +351,9 @@ app.delete("/api/owner/users/:id", tekshirish, faqatEga, (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: "ID noto‘g‘ri." });
+    return res.status(400).json({
+      error: "ID noto‘g‘ri."
+    });
   }
 
   const user = db.prepare(
@@ -306,12 +366,16 @@ app.delete("/api/owner/users/:id", tekshirish, faqatEga, (req, res) => {
     });
   }
 
-  db.prepare("DELETE FROM users WHERE id = ?").run(id);
+  db.prepare(
+    "DELETE FROM users WHERE id = ?"
+  ).run(id);
 
-  res.json({ xabar: "Foydalanuvchi o‘chirildi." });
+  res.json({
+    xabar: "Foydalanuvchi o‘chirildi."
+  });
 });
 
-// EGA foydalanuvchini admin qiladi va ruxsat beradi
+// EGA admin qiladi va ruxsat beradi
 app.post("/api/owner/admins", tekshirish, faqatEga, (req, res) => {
   const {
     username,
@@ -320,7 +384,9 @@ app.post("/api/owner/admins", tekshirish, faqatEga, (req, res) => {
   } = req.body;
 
   if (typeof username !== "string") {
-    return res.status(400).json({ error: "Username kiriting." });
+    return res.status(400).json({
+      error: "Username kiriting."
+    });
   }
 
   const user = db.prepare(
@@ -328,7 +394,9 @@ app.post("/api/owner/admins", tekshirish, faqatEga, (req, res) => {
   ).get(username.trim());
 
   if (!user || user.role === "owner") {
-    return res.status(404).json({ error: "Foydalanuvchi topilmadi." });
+    return res.status(404).json({
+      error: "Foydalanuvchi topilmadi."
+    });
   }
 
   const permissions = JSON.stringify({
@@ -342,7 +410,9 @@ app.post("/api/owner/admins", tekshirish, faqatEga, (req, res) => {
     WHERE id = ?
   `).run(permissions, user.id);
 
-  res.json({ xabar: "Admin huquqi berildi." });
+  res.json({
+    xabar: "Admin huquqi berildi."
+  });
 });
 
 // EGA admin huquqini bekor qiladi
@@ -356,52 +426,102 @@ app.delete("/api/owner/admins/:id", tekshirish, faqatEga, (req, res) => {
   `).run(id);
 
   if (!result.changes) {
-    return res.status(404).json({ error: "Admin topilmadi." });
+    return res.status(404).json({
+      error: "Admin topilmadi."
+    });
   }
 
-  res.json({ xabar: "Admin huquqi bekor qilindi." });
+  res.json({
+    xabar: "Admin huquqi bekor qilindi."
+  });
 });
 
-// AI savol-javob
+// AI savol-javob — Gemini API
 app.post("/api/savol", async (req, res) => {
   try {
     const savol = req.body.savol;
 
     if (typeof savol !== "string" || !savol.trim()) {
-      return res.status(400).json({ error: "Savolni kiriting." });
+      return res.status(400).json({
+        error: "Savolni kiriting."
+      });
     }
 
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        system: "Sen maktab o‘quvchilariga yordam beradigan o‘qituvchisan. Faqat o‘zbek tilida, lotin yozuvida javob ber. Savollarga to‘liq, sodda va tushunarli javob ber. Matematik misollarni to‘g‘ri hisobla. Uydirma ma’lumot yozma.",
-        prompt: savol.trim(),
-        stream: false,
-        options: { temperature: 0, num_predict: 700 }
-      })
-    });
-
-    if (!response.ok) {
-      console.error(await response.text());
-      return res.status(502).json({ error: "Ollama javob bera olmadi." });
+    if (savol.length > 4000) {
+      return res.status(400).json({
+        error: "Savol juda uzun. Qisqartirib yuboring."
+      });
     }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: "Gemini API kaliti topilmadi."
+      });
+    }
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "Sen maktab o‘quvchilariga yordam beradigan o‘qituvchisan. Faqat o‘zbek tilida, lotin yozuvida javob ber. Savollarga to‘liq, sodda va tushunarli javob ber. Matematik misollarni to‘g‘ri hisobla. Uydirma ma’lumot yozma."
+            }]
+          },
+          contents: [{
+            parts: [{
+              text: savol.trim()
+            }]
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 700
+          }
+        })
+      }
+    );
 
     const data = await response.json();
-    const javob = data.response?.trim();
+
+    if (!response.ok) {
+      console.error(
+        "Gemini xatosi:",
+        data.error?.message || "Noma'lum xato"
+      );
+
+      return res.status(502).json({
+        error: "Gemini javob bera olmadi. Keyinroq urinib ko‘ring."
+      });
+    }
+
+    const javob = data.candidates?.[0]?.content?.parts
+      ?.map(part => part.text || "")
+      .join("")
+      .trim();
 
     if (!javob) {
-      return res.status(502).json({ error: "AI bo‘sh javob qaytardi." });
+      return res.status(502).json({
+        error: "AI bo‘sh javob qaytardi."
+      });
     }
 
     res.json({ javob });
+
   } catch (error) {
     console.error("Server xatosi:", error.message);
-    res.status(500).json({ error: "AI serveriga ulanib bo‘lmadi." });
+
+    res.status(500).json({
+      error: "AI serveriga ulanib bo‘lmadi."
+    });
   }
 });
 
+// Serverni ishga tushirish
 app.listen(PORT, () => {
   console.log(`Backend ishlayapti: http://localhost:${PORT}`);
 });
