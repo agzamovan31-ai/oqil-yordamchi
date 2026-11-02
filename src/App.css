@@ -262,6 +262,69 @@ textarea:focus {
   box-shadow: 0 0 0 3px #5145e51a;
 }
 
+/* Rasm qo‘shish + menyu */
+
+.image-upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.plus-button {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 14px;
+  background: #5145e5;
+  color: white;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.plus-button:hover {
+  background: #4035c8;
+  transform: scale(1.04);
+}
+
+.image-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e2e0f5;
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 6px 20px #24204a12;
+}
+
+.image-menu label {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 14px;
+  border: 1px solid #d7dbea;
+  border-radius: 10px;
+  background: #f8f7ff;
+  color: #38324d;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.image-menu label:hover {
+  background: #eeedff;
+  border-color: #aaa4ff;
+}
+
+.image-menu input {
+  display: none;
+}
+
 /* Xabarlar */
 
 .success {
@@ -652,6 +715,20 @@ footer {
     width: 100%;
   }
 
+  .image-upload {
+    align-items: flex-start;
+  }
+
+  .image-menu {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .image-menu label {
+    justify-content: center;
+    width: 100%;
+  }
+
   .history-item {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -690,4 +767,51 @@ footer {
   nav.panel button {
     width: 100%;
   }
+}
+.image-upload {
+  position: relative;
+  margin-top: 15px;
+}
+
+.plus-button {
+  width: 48px;
+  height: 48px;
+  border: 2px dashed #6366f1;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-menu {
+  position: absolute;
+  left: 55px;
+  top: 0;
+  z-index: 10;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
+}
+
+.image-menu label {
+  display: block;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #222;
+}
+
+.image-menu label:hover {
+  background: #eef2ff;
+}
+
+.image-preview {
+  margin-top: 12px;
 }

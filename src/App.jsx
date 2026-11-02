@@ -39,6 +39,7 @@ const TARIFLAR = [
 
 function App() {
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
+
   const [token, setToken] = useState(
     () => localStorage.getItem("oqilAiToken") || ""
   );
@@ -71,6 +72,11 @@ function App() {
   const [javob, setJavob] = useState("");
   const [aiYuklanmoqda, setAiYuklanmoqda] = useState(false);
 
+  // Rasm bilan ishlash
+  const [rasm, setRasm] = useState(null);
+  const [rasmMenyu, setRasmMenyu] = useState(false);
+
+  // Savollar tarixi
   const [tarix, setTarix] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("savollarTarixi")) || [];
@@ -114,6 +120,73 @@ function App() {
     return {
       Authorization: `Bearer ${token}`,
     };
+  }
+
+  // Rasm tanlash yoki kamera orqali olish
+  function rasmTanlash(e) {
+    const fayl = e.target.files?.[0];
+
+    if (!fayl) return;
+
+    const ruxsatEtilganTurlar = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!ruxsatEtilganTurlar.includes(fayl.type)) {
+      setXato("Faqat JPG, PNG yoki WEBP formatidagi rasm yuklang.");
+      e.target.value = "";
+      return;
+    }
+
+    if (fayl.size > 5 * 1024 * 1024) {
+      setXato("Rasm hajmi 5 MB dan oshmasligi kerak.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      const vergulIndex = dataUrl.indexOf(",");
+
+      if (vergulIndex === -1) {
+        setXato("Rasmni o‘qishda xatolik yuz berdi.");
+        return;
+      }
+
+      setRasm({
+        nomi: fayl.name || "Kameradan olingan rasm",
+        mimeType: fayl.type,
+        data: dataUrl.slice(vergulIndex + 1),
+        preview: dataUrl,
+      });
+
+      setXato("");
+      setJavob("");
+      setTanlangan(null);
+      setRasmMenyu(false);
+    };
+
+    reader.onerror = () => {
+      setXato("Rasmni o‘qib bo‘lmadi.");
+    };
+
+    reader.readAsDataURL(fayl);
+    e.target.value = "";
+  }
+
+  // Rasmni o‘chirish
+  function rasmniOchirish() {
+    setRasm(null);
+
+    const galereyaInput = document.getElementById("savol-rasmi");
+    const kameraInput = document.getElementById("kamera-rasmi");
+
+    if (galereyaInput) galereyaInput.value = "";
+    if (kameraInput) kameraInput.value = "";
   }
 
   useEffect(() => {
@@ -224,6 +297,10 @@ function App() {
     setSahifa("asosiy");
     setXato("");
     setXabarnoma("");
+    setRasm(null);
+    setRasmMenyu(false);
+    setSavol("");
+    setJavob("");
   }
 
   async function foydalanuvchilarniYuklash() {
@@ -423,9 +500,10 @@ function App() {
     }
   }
 
+  // AI ga savol va rasm yuborish
   async function aiDanSorash() {
-    if (!savol.trim()) {
-      alert("Avval savolni kiriting!");
+    if (!savol.trim() && !rasm) {
+      setXato("Savol yozing yoki rasm yuklang!");
       return;
     }
 
@@ -442,6 +520,12 @@ function App() {
         },
         body: JSON.stringify({
           savol: savol.trim(),
+          rasm: rasm
+            ? {
+                mimeType: rasm.mimeType,
+                data: rasm.data,
+              }
+            : undefined,
         }),
       });
 
@@ -455,7 +539,7 @@ function App() {
 
       const yangiSavol = {
         id: Date.now(),
-        matn: savol.trim(),
+        matn: savol.trim() || `Rasm: ${rasm.nomi}`,
         javob: data.javob || "",
         vaqt: new Date().toLocaleString("uz-UZ"),
       };
@@ -472,6 +556,14 @@ function App() {
     setSavol(item.matn);
     setJavob(item.javob || "");
     setTanlangan(item.id);
+    setRasm(null);
+    setRasmMenyu(false);
+
+    const galereyaInput = document.getElementById("savol-rasmi");
+    const kameraInput = document.getElementById("kamera-rasmi");
+
+    if (galereyaInput) galereyaInput.value = "";
+    if (kameraInput) kameraInput.value = "";
   }
 
   function savolniOchirish(id) {
@@ -699,8 +791,8 @@ function App() {
             <h2>Yangi savol</h2>
 
             <p className="hint">
-              Savolingni yoz. AI fanlar, ingliz tili va
-              dasturlash bo‘yicha yordam beradi.
+              Savolingni yoz yoki rasm yukla. AI fanlar,
+              ingliz tili va dasturlash bo‘yicha yordam beradi.
             </p>
 
             <textarea
@@ -713,11 +805,85 @@ function App() {
               placeholder="Savolingni shu yerga yoz..."
             />
 
+            {/* Rasm yuklash: bitta + tugmasi */}
+            <div className="image-upload">
+              <button
+                type="button"
+                className="plus-button"
+                onClick={() => setRasmMenyu((old) => !old)}
+                aria-label="Rasm qo‘shish"
+              >
+                +
+              </button>
+
+              {rasmMenyu && (
+                <div className="image-menu">
+                  <label htmlFor="savol-rasmi">
+                    Galereyadan rasm tanlash
+                  </label>
+
+                  <label htmlFor="kamera-rasmi">
+                    Kamera orqali suratga olish
+                  </label>
+                </div>
+              )}
+
+              <input
+                id="savol-rasmi"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={rasmTanlash}
+                hidden
+              />
+
+              <input
+                id="kamera-rasmi"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                onChange={rasmTanlash}
+                hidden
+              />
+
+              {rasm && (
+                <div className="image-preview">
+                  <img
+                    src={rasm.preview}
+                    alt="Yuklangan rasm"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "300px",
+                      objectFit: "contain",
+                      display: "block",
+                      marginTop: "12px",
+                      borderRadius: "12px",
+                    }}
+                  />
+
+                  <p>{rasm.nomi}</p>
+
+                  <button
+                    type="button"
+                    className="delete"
+                    onClick={rasmniOchirish}
+                  >
+                    Rasmni o‘chirish
+                  </button>
+                </div>
+              )}
+
+              <small className="hint">
+                JPG, PNG yoki WEBP. Maksimal hajmi: 5 MB.
+              </small>
+            </div>
+
             <div className="actions">
               <button
                 className="primary"
                 onClick={aiDanSorash}
-                disabled={aiYuklanmoqda}
+                disabled={
+                  aiYuklanmoqda || (!savol.trim() && !rasm)
+                }
               >
                 {aiYuklanmoqda
                   ? "AI o‘ylayapti..."

@@ -28,7 +28,7 @@ app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
 }));
 
-app.use(express.json({ limit: "20kb" }));
+app.use(express.json({ limit: "8mb" }));
 
 // Ma'lumotlar bazasi
 const db = new Database("data.sqlite");
@@ -439,16 +439,20 @@ app.delete("/api/owner/admins/:id", tekshirish, faqatEga, (req, res) => {
   });
 });
 
-// AI savol-javob — Gemini API
+// AI savol-javob — Gemini API (matn va rasm)
 app.post("/api/savol", async (req, res) => {
   const boshlanish = Date.now();
 
   try {
-    const savol = req.body.savol;
+    const savol = typeof req.body.savol === "string"
+      ? req.body.savol.trim()
+      : "";
 
-    if (typeof savol !== "string" || !savol.trim()) {
+    const rasm = req.body.rasm;
+
+    if (!savol && !rasm) {
       return res.status(400).json({
-        error: "Savolni kiriting."
+        error: "Savol yozing yoki rasm yuklang."
       });
     }
 
@@ -458,13 +462,69 @@ app.post("/api/savol", async (req, res) => {
       });
     }
 
+    // Rasmni tekshirish
+    if (rasm) {
+      const ruxsatEtilganTurlar = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ];
+
+      if (
+        typeof rasm.mimeType !== "string" ||
+        !ruxsatEtilganTurlar.includes(rasm.mimeType) ||
+        typeof rasm.data !== "string"
+      ) {
+        return res.status(400).json({
+          error: "Faqat JPG, PNG yoki WEBP rasm yuklash mumkin."
+        });
+      }
+
+      if (
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(rasm.data) ||
+        rasm.data.length % 4 !== 0
+      ) {
+        return res.status(400).json({
+          error: "Rasm ma'lumotlari noto‘g‘ri."
+        });
+      }
+
+      const rasmHajmi = Buffer.from(rasm.data, "base64").length;
+
+      if (rasmHajmi === 0 || rasmHajmi > 5 * 1024 * 1024) {
+        return res.status(400).json({
+          error: "Rasm hajmi 5 MB dan oshmasligi kerak."
+        });
+      }
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
         error: "Gemini API kaliti topilmadi."
       });
     }
 
-    console.log("Gemini so‘rovi boshlandi.");
+    console.log(
+      rasm
+        ? "Gemini rasmli so‘rovni boshladi."
+        : "Gemini matnli so‘rovni boshladi."
+    );
+
+    const matn = savol ||
+      "Ushbu rasmni tahlil qil va undagi topshiriqni tushuntir.";
+
+    const parts = [
+      { text: matn }
+    ];
+
+    if (rasm) {
+      parts.push({
+        inlineData: {
+          mimeType: rasm.mimeType,
+          data: rasm.data
+        }
+      });
+    }
 
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
@@ -488,6 +548,15 @@ ASOSIY QOIDALAR:
 5. Hisob-kitoblarni diqqat bilan tekshir.
 6. Javobni tugallanmagan holda qoldirma.
 
+RASMLAR BILAN ISHLASH:
+1. Yuklangan rasmni diqqat bilan tahlil qil.
+2. Rasmdagi yozuvlar va topshiriqlarni o‘qi.
+3. Agar rasmda matematika misoli bo‘lsa, bosqichma-bosqich yech.
+4. Agar rasmda test bo‘lsa, to‘g‘ri javobni izohla.
+5. Agar rasm xira yoki o‘qib bo‘lmaydigan bo‘lsa, buni ochiq ayt.
+6. Rasmda ko‘rinmagan ma'lumotlarni o‘zingdan to‘qima.
+7. Foydalanuvchi rasm haqida savol bersa, aynan shu savolga javob ber.
+
 MATEMATIKA UCHUN:
 - Berilgan misolni tushun.
 - Yechish usulini tanla.
@@ -510,13 +579,11 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
             }]
           },
           contents: [{
-            parts: [{
-              text: savol.trim()
-            }]
+            parts
           }],
           generationConfig: {
             temperature: 0,
-            maxOutputTokens: 1000
+            maxOutputTokens: 1500
           }
         })
       }
