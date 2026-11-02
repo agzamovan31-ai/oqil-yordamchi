@@ -441,6 +441,8 @@ app.delete("/api/owner/admins/:id", tekshirish, faqatEga, (req, res) => {
 
 // AI savol-javob — Gemini API
 app.post("/api/savol", async (req, res) => {
+  const boshlanish = Date.now();
+
   try {
     const savol = req.body.savol;
 
@@ -462,10 +464,13 @@ app.post("/api/savol", async (req, res) => {
       });
     }
 
+    console.log("Gemini so‘rovi boshlandi.");
+
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
       {
         method: "POST",
+        signal: AbortSignal.timeout(45000),
         headers: {
           "Content-Type": "application/json",
           "x-goog-api-key": process.env.GEMINI_API_KEY
@@ -511,10 +516,16 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
           }],
           generationConfig: {
             temperature: 0,
-            maxOutputTokens: 1500
+            maxOutputTokens: 1000
           }
         })
       }
+    );
+
+    console.log(
+      "Gemini javob kutish vaqti:",
+      ((Date.now() - boshlanish) / 1000).toFixed(1),
+      "soniya"
     );
 
     const data = await response.json();
@@ -551,12 +562,27 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
       });
     }
 
-    res.json({ javob });
+    console.log(
+      "To‘liq javob tayyor:",
+      ((Date.now() - boshlanish) / 1000).toFixed(1),
+      "soniya"
+    );
+
+    return res.json({ javob });
 
   } catch (error) {
-    console.error("Server xatosi:", error.message);
+    console.error("AI xatosi:", error.name, error.message);
 
-    res.status(500).json({
+    if (
+      error.name === "TimeoutError" ||
+      error.name === "AbortError"
+    ) {
+      return res.status(504).json({
+        error: "AI juda sekin javob bermoqda. Iltimos, qayta urinib ko‘ring."
+      });
+    }
+
+    return res.status(500).json({
       error: "AI serveriga ulanib bo‘lmadi."
     });
   }
