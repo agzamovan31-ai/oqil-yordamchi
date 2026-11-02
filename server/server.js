@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -8,6 +9,8 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+app.set("trust proxy", 1);
 
 if (
   !process.env.JWT_SECRET ||
@@ -470,7 +473,7 @@ app.post("/api/savol", async (req, res) => {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-            text: `Sen O‘quvchi AI nomli aqlli ta'lim yordamchisisan.
+              text: `Sen O‘quvchi AI nomli aqlli ta'lim yordamchisisan.
 
 ASOSIY QOIDALAR:
 1. Faqat o‘zbek tilida, lotin yozuvida javob ber.
@@ -508,19 +511,13 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
           }],
           generationConfig: {
             temperature: 0,
-           maxOutputTokens: 1500
+            maxOutputTokens: 1500
+          }
         })
       }
     );
 
     const data = await response.json();
-    const finishReason = data.candidates?.[0]?.finishReason;
-
-if (finishReason === "MAX_TOKENS") {
-  return res.status(502).json({
-    error: "AI javobi tugallanmay qoldi. Iltimos, qayta urinib ko‘ring."
-  });
-}
 
     if (!response.ok) {
       console.error(
@@ -533,12 +530,22 @@ if (finishReason === "MAX_TOKENS") {
       });
     }
 
+    const finishReason = data.candidates?.[0]?.finishReason;
+
+    if (finishReason === "MAX_TOKENS") {
+      return res.status(502).json({
+        error: "AI javobi tugallanmay qoldi. Iltimos, qayta urinib ko‘ring."
+      });
+    }
+
     const javob = data.candidates?.[0]?.content?.parts
       ?.map(part => part.text || "")
       .join("")
       .trim();
 
     if (!javob) {
+      console.error("Gemini bo‘sh javob qaytardi:", finishReason);
+
       return res.status(502).json({
         error: "AI bo‘sh javob qaytardi."
       });
