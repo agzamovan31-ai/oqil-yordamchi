@@ -508,13 +508,19 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
           }],
           generationConfig: {
             temperature: 0,
-            maxOutputTokens: 700
-          }
+           maxOutputTokens: 1500
         })
       }
     );
 
     const data = await response.json();
+    const finishReason = data.candidates?.[0]?.finishReason;
+
+if (finishReason === "MAX_TOKENS") {
+  return res.status(502).json({
+    error: "AI javobi tugallanmay qoldi. Iltimos, qayta urinib ko‘ring."
+  });
+}
 
     if (!response.ok) {
       console.error(

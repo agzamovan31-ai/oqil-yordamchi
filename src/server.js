@@ -53,7 +53,7 @@ app.post("/api/savol", async (req, res) => {
     } else if (error.status === 403) {
       xabar = "API so'roviga ruxsat yo'q. Hisob va model ruxsatlarini tekshiring.";
     }
-
+    
     res.status(error.status || 500).json({
       error: xabar,
     });
