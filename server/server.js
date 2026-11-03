@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -28,6 +27,7 @@ app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
 }));
 
+// Rasm frontendda 4.5 MB gacha siqiladi.
 app.use(express.json({ limit: "8mb" }));
 
 // Ma'lumotlar bazasi
@@ -49,7 +49,10 @@ db.exec(`
   );
 `);
 
-const ustunlar = db.prepare("PRAGMA table_info(users)").all();
+// Eski bazada created_by ustuni bo‘lmasa, qo‘shiladi.
+const ustunlar = db.prepare(
+  "PRAGMA table_info(users)"
+).all();
 
 if (!ustunlar.some(ustun => ustun.name === "created_by")) {
   db.exec("ALTER TABLE users ADD COLUMN created_by INTEGER");
@@ -177,7 +180,7 @@ app.get("/", (req, res) => {
 // Ro‘yxatdan o‘tish
 app.post("/api/auth/register", (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
 
     if (
       typeof username !== "string" ||
@@ -232,7 +235,7 @@ app.post("/api/auth/register", (req, res) => {
 
 // Tizimga kirish
 app.post("/api/auth/login", loginLimit, (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
 
   if (
     typeof username !== "string" ||
@@ -297,7 +300,7 @@ app.get("/api/admin/users", tekshirish, faqatAdmin, (req, res) => {
 // Admin yoki EGA foydalanuvchi qo‘shadi
 app.post("/api/admin/users", tekshirish, faqatAdmin, (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
     const permissions = ruxsatlar(req.user);
 
     if (
@@ -384,7 +387,7 @@ app.post("/api/owner/admins", tekshirish, faqatEga, (req, res) => {
     username,
     canAddUsers = true,
     canRequestGifts = true
-  } = req.body;
+  } = req.body || {};
 
   if (typeof username !== "string") {
     return res.status(400).json({
@@ -444,11 +447,11 @@ app.post("/api/savol", async (req, res) => {
   const boshlanish = Date.now();
 
   try {
-    const savol = typeof req.body.savol === "string"
+    const savol = typeof req.body?.savol === "string"
       ? req.body.savol.trim()
       : "";
 
-    const rasm = req.body.rasm;
+    const rasm = req.body?.rasm;
 
     if (!savol && !rasm) {
       return res.status(400).json({
@@ -489,13 +492,14 @@ app.post("/api/savol", async (req, res) => {
         });
       }
 
-     const rasmHajmi = Buffer.from(rasm.data, "base64").length;
+      const rasmHajmi = Buffer.from(rasm.data, "base64").length;
 
-if (rasmHajmi === 0 || rasmHajmi > 50 * 1024 * 1024) {
-  return res.status(400).json({
-    error: "Rasm hajmi 50 MB dan oshmasligi kerak."
-  });
-}
+      if (rasmHajmi === 0 || rasmHajmi > 50 * 1024 * 1024) {
+        return res.status(400).json({
+          error: "Rasm hajmi 50 MB dan oshmasligi kerak."
+        });
+      }
+    }
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
