@@ -122,10 +122,8 @@ function App() {
     };
   }
 
-  // Rasm tanlash yoki kamera orqali olish
-  function rasmTanlash(e) {
-    const fayl = e.target.files?.[0];
-
+  // Rasmni tekshirish, kichraytirish va saqlash
+  async function rasmniQabulQilish(fayl) {
     if (!fayl) return;
 
     const ruxsatEtilganTurlar = [
@@ -136,46 +134,128 @@ function App() {
 
     if (!ruxsatEtilganTurlar.includes(fayl.type)) {
       setXato("Faqat JPG, PNG yoki WEBP formatidagi rasm yuklang.");
-      e.target.value = "";
       return;
     }
 
-    if (fayl.size > 5 * 1024 * 1024) {
-      setXato("Rasm hajmi 5 MB dan oshmasligi kerak.");
-      e.target.value = "";
+    // Asl rasm 50 MB dan oshmasligi kerak
+    if (fayl.size > 50 * 1024 * 1024) {
+      setXato("Rasm hajmi 50 MB dan oshmasligi kerak.");
       return;
     }
 
-    const reader = new FileReader();
+    setXato("");
 
-    reader.onload = () => {
-      const dataUrl = String(reader.result || "");
-      const vergulIndex = dataUrl.indexOf(",");
+    let bitmap;
 
-      if (vergulIndex === -1) {
-        setXato("Rasmni o‘qishda xatolik yuz berdi.");
-        return;
+    try {
+      bitmap = await createImageBitmap(fayl);
+
+      let scale = Math.min(
+        1,
+        2200 / Math.max(bitmap.width, bitmap.height)
+      );
+
+      let blob = null;
+
+      // Rasmni 4.5 MB gacha kichraytirish
+      for (let i = 0; i < 7; i++) {
+        const canvas = document.createElement("canvas");
+
+        canvas.width = Math.max(
+          1,
+          Math.round(bitmap.width * scale)
+        );
+
+        canvas.height = Math.max(
+          1,
+          Math.round(bitmap.height * scale)
+        );
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error("Rasmni qayta ishlash imkoni bo‘lmadi.");
+        }
+
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        context.drawImage(
+          bitmap,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        const sifat = Math.max(0.45, 0.85 - i * 0.08);
+
+        blob = await new Promise((resolve) => {
+          canvas.toBlob(resolve, "image/jpeg", sifat);
+        });
+
+        if (blob && blob.size <= 4.5 * 1024 * 1024) {
+          break;
+        }
+
+        scale *= 0.8;
       }
 
-      setRasm({
-        nomi: fayl.name || "Kameradan olingan rasm",
-        mimeType: fayl.type,
-        data: dataUrl.slice(vergulIndex + 1),
-        preview: dataUrl,
-      });
+      bitmap.close();
+      bitmap = null;
 
-      setXato("");
-      setJavob("");
-      setTanlangan(null);
-      setRasmMenyu(false);
-    };
+      if (!blob || blob.size > 4.5 * 1024 * 1024) {
+        throw new Error(
+          "Rasmni kerakli hajmgacha kichraytirib bo‘lmadi."
+        );
+      }
 
-    reader.onerror = () => {
-      setXato("Rasmni o‘qib bo‘lmadi.");
-    };
+      const reader = new FileReader();
 
-    reader.readAsDataURL(fayl);
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        const vergulIndex = dataUrl.indexOf(",");
+
+        if (vergulIndex === -1) {
+          setXato("Rasmni o‘qishda xatolik yuz berdi.");
+          return;
+        }
+
+        setRasm({
+          nomi: fayl.name || "Rasm",
+          mimeType: "image/jpeg",
+          data: dataUrl.slice(vergulIndex + 1),
+          preview: dataUrl,
+        });
+
+        setXato("");
+        setJavob("");
+        setTanlangan(null);
+        setRasmMenyu(false);
+      };
+
+      reader.onerror = () => {
+        setXato("Rasmni o‘qib bo‘lmadi.");
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      if (bitmap) bitmap.close();
+
+      setXato(
+        error.message || "Rasmni qayta ishlashda xatolik yuz berdi."
+      );
+    }
+  }
+
+  // Galereya yoki kameradan rasm tanlash
+  function rasmTanlash(e) {
+    const fayl = e.target.files?.[0];
+
+    if (!fayl) return;
+
     e.target.value = "";
+    rasmniQabulQilish(fayl);
   }
 
   // Rasmni o‘chirish
@@ -802,7 +882,23 @@ function App() {
                 setTanlangan(null);
                 setJavob("");
               }}
-              placeholder="Savolingni shu yerga yoz..."
+              onPaste={(e) => {
+                const items = Array.from(e.clipboardData.items);
+
+                const rasmItem = items.find((item) =>
+                  item.type.startsWith("image/")
+                );
+
+                if (rasmItem) {
+                  const fayl = rasmItem.getAsFile();
+
+                  if (fayl) {
+                    e.preventDefault();
+                    rasmniQabulQilish(fayl);
+                  }
+                }
+              }}
+              placeholder="Savolingni yoz yoki rasmni Ctrl + V orqali joylashtir..."
             />
 
             {/* Rasm yuklash: bitta + tugmasi */}
@@ -873,7 +969,8 @@ function App() {
               )}
 
               <small className="hint">
-                JPG, PNG yoki WEBP. Maksimal hajmi: 5 MB.
+                JPG, PNG yoki WEBP. Maksimal hajmi: 50 MB.
+                Rasm AI uchun avtomatik kichraytiriladi.
               </small>
             </div>
 

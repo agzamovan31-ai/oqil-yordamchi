@@ -489,14 +489,13 @@ app.post("/api/savol", async (req, res) => {
         });
       }
 
-      const rasmHajmi = Buffer.from(rasm.data, "base64").length;
+     const rasmHajmi = Buffer.from(rasm.data, "base64").length;
 
-      if (rasmHajmi === 0 || rasmHajmi > 5 * 1024 * 1024) {
-        return res.status(400).json({
-          error: "Rasm hajmi 5 MB dan oshmasligi kerak."
-        });
-      }
-    }
+if (rasmHajmi === 0 || rasmHajmi > 50 * 1024 * 1024) {
+  return res.status(400).json({
+    error: "Rasm hajmi 50 MB dan oshmasligi kerak."
+  });
+}
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
