@@ -725,8 +725,20 @@ function App() {
   window.speechSynthesis.cancel();
 
   const nutq = new SpeechSynthesisUtterance(javob);
-  nutq.lang = "uz-UZ";
-  nutq.rate = 0.9;
+
+const ovozlar = window.speechSynthesis.getVoices();
+
+const ozbekOvozi = ovozlar.find(
+  ovoz => ovoz.lang.toLowerCase().startsWith("uz")
+);
+
+if (ozbekOvozi) {
+  nutq.voice = ozbekOvozi;
+}
+
+nutq.lang = ozbekOvozi ? ozbekOvozi.lang : "uz-UZ";
+nutq.rate = 0.8;
+nutq.pitch = 1;
 
   nutq.onend = () => setOvozliJavob(false);
   nutq.onerror = () => setOvozliJavob(false);
