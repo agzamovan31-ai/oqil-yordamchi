@@ -442,6 +442,108 @@ app.delete("/api/owner/admins/:id", tekshirish, faqatEga, (req, res) => {
   });
 });
 
+// Ovozli savolni matnga aylantirish
+app.post("/api/transcribe", tekshirish, async (req, res) => {
+  try {
+    const { audio, mimeType } = req.body || {};
+
+    const ruxsatEtilganTurlar = [
+      "audio/webm",
+      "audio/ogg",
+      "audio/mp4",
+      "audio/wav",
+      "audio/mpeg"
+    ];
+
+    if (
+      typeof audio !== "string" ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(audio) ||
+      audio.length % 4 !== 0 ||
+      typeof mimeType !== "string" ||
+      !ruxsatEtilganTurlar.includes(mimeType)
+    ) {
+      return res.status(400).json({
+        error: "Ovoz fayli noto‘g‘ri."
+      });
+    }
+
+    const audioHajmi = Buffer.from(audio, "base64").length;
+
+    if (audioHajmi === 0 || audioHajmi > 5 * 1024 * 1024) {
+      return res.status(400).json({
+        error: "Ovoz fayli 5 MB dan oshmasligi kerak."
+      });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: "Gemini API kaliti topilmadi."
+      });
+    }
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+      {
+        method: "POST",
+        signal: AbortSignal.timeout(45000),
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": process.env.GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: "Ushbu audio yozuvdagi gaplarni diqqat bilan tingla. Faqat aytilgan so‘zlarni o‘zbek lotin yozuvida matn ko‘rinishida qaytar. Hech qanday izoh qo‘shma."
+              },
+              {
+                inlineData: {
+                  mimeType,
+                  data: audio
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 500
+          }
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Ovoz transkripsiyasi xatosi:", data.error?.message);
+
+      return res.status(502).json({
+        error: "Ovoz matnga aylantirilmadi. Qayta urinib ko‘ring."
+      });
+    }
+
+    const matn = data.candidates?.[0]?.content?.parts
+      ?.map(part => part.text || "")
+      .join("")
+      .trim();
+
+    if (!matn) {
+      return res.status(502).json({
+        error: "Ovozdan matn aniqlanmadi."
+      });
+    }
+
+    res.json({ matn });
+
+  } catch (error) {
+    console.error("Ovoz xatosi:", error.message);
+
+    res.status(500).json({
+      error: "Ovoz serveriga ulanib bo‘lmadi."
+    });
+  }
+});
+
 // AI savol-javob — Gemini API (matn va rasm)
 app.post("/api/savol", async (req, res) => {
   const boshlanish = Date.now();

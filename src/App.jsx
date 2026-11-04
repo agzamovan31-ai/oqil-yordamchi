@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -71,6 +71,14 @@ function App() {
   const [savol, setSavol] = useState("");
   const [javob, setJavob] = useState("");
   const [aiYuklanmoqda, setAiYuklanmoqda] = useState(false);
+
+  const [ovozYozilmoqda, setOvozYozilmoqda] = useState(false);
+  const [ovozAylantirilmoqda, setOvozAylantirilmoqda] = useState(false);
+  const [ovozliJavob, setOvozliJavob] = useState(false);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const mediaStreamRef = useRef(null);
 
   // Rasm bilan ishlash
   const [rasm, setRasm] = useState(null);
@@ -580,6 +588,158 @@ function App() {
     }
   }
 
+  // Mikrofon orqali ovoz yozish va server orqali matnga aylantirish
+  async function ovozliSavol() {
+    if (ovozYozilmoqda) {
+      ovozniYozishniToxtatish();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setXato("Brauzeringiz ovoz yozishni qo‘llab-quvvatlamaydi.");
+      return;
+    }
+
+    try {
+      setXato("");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      const turlar = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+        "audio/mp4",
+      ];
+      const tanlanganTur = turlar.find((tur) => MediaRecorder.isTypeSupported(tur));
+      const recorder = tanlanganTur
+        ? new MediaRecorder(stream, { mimeType: tanlanganTur })
+        : new MediaRecorder(stream);
+
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setXato("Ovoz yozishda xatolik yuz berdi. Qayta urinib ko‘ring.");
+        setOvozYozilmoqda(false);
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      };
+
+      recorder.onstop = async () => {
+        setOvozYozilmoqda(false);
+        setOvozAylantirilmoqda(true);
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: recorder.mimeType || "audio/webm",
+          });
+
+          if (!audioBlob.size) {
+            throw new Error("Ovoz yozilmadi. Mikrofonni tekshiring.");
+          }
+          if (audioBlob.size > 5 * 1024 * 1024) {
+            throw new Error("Ovoz yozuvi 5 MB dan katta. Qisqaroq gapiring.");
+          }
+
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Ovoz faylini o‘qib bo‘lmadi."));
+            reader.readAsDataURL(audioBlob);
+          });
+
+          const vergulIndex = dataUrl.indexOf(",");
+          if (vergulIndex === -1) {
+            throw new Error("Ovoz faylini tayyorlashda xatolik yuz berdi.");
+          }
+
+          const audio = dataUrl.slice(vergulIndex + 1);
+          const mimeType = (audioBlob.type || "audio/webm").split(";")[0];
+
+          const response = await fetch(`${API}/api/transcribe`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...authHeaders(),
+            },
+            body: JSON.stringify({ audio, mimeType }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Ovoz matnga aylantirilmadi.");
+          }
+
+          const matn = String(data.matn || "").trim();
+          if (!matn) {
+            throw new Error("Ovozdan matn aniqlanmadi. Qayta urinib ko‘ring.");
+          }
+
+          setSavol((old) => (old ? `${old} ${matn}` : matn));
+          setJavob("");
+          setTanlangan(null);
+          setXato("");
+        } catch (error) {
+          setXato(error.message || "Ovoz matnga aylantirilmadi.");
+        } finally {
+          setOvozAylantirilmoqda(false);
+          audioChunksRef.current = [];
+          mediaRecorderRef.current = null;
+        }
+      };
+
+      recorder.start();
+      setOvozYozilmoqda(true);
+    } catch (error) {
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      setOvozYozilmoqda(false);
+
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        setXato("Mikrofondan foydalanishga ruxsat bering.");
+      } else {
+        setXato(error.message || "Mikrofonni ishga tushirib bo‘lmadi.");
+      }
+    }
+  }
+
+  function ovozniYozishniToxtatish() {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  }
+
+  function javobniOqish() {
+  if (!javob) return;
+
+  window.speechSynthesis.cancel();
+
+  const nutq = new SpeechSynthesisUtterance(javob);
+  nutq.lang = "uz-UZ";
+  nutq.rate = 0.9;
+
+  nutq.onend = () => setOvozliJavob(false);
+  nutq.onerror = () => setOvozliJavob(false);
+
+  setOvozliJavob(true);
+  window.speechSynthesis.speak(nutq);
+}
+
+// Ovozli javobni to‘xtatish
+function ovozniToxtatish() {
+  window.speechSynthesis.cancel();
+  setOvozliJavob(false);
+}
   // AI ga savol va rasm yuborish
   async function aiDanSorash() {
     if (!savol.trim() && !rasm) {
@@ -901,6 +1061,19 @@ function App() {
               placeholder="Savolingni yoz yoki rasmni Ctrl + V orqali joylashtir..."
             />
 
+<button
+  type="button"
+  className="secondary"
+  onClick={ovozYozilmoqda ? ovozniYozishniToxtatish : ovozliSavol}
+  disabled={ovozAylantirilmoqda}
+>
+  {ovozAylantirilmoqda
+    ? "Ovoz matnga aylantirilmoqda..."
+    : ovozYozilmoqda
+      ? "Ovoz yozishni tugatish"
+      : "Mikrofon orqali savol berish"}
+</button>
+
             {/* Rasm yuklash: bitta + tugmasi */}
             <div className="image-upload">
               <button
@@ -990,12 +1163,26 @@ function App() {
 
             {xato && <p className="error">{xato}</p>}
 
-            {javob && (
-              <div className="ai-answer">
-                <h2>AI javobi</h2>
-                <p className="answer-text">{javob}</p>
-              </div>
-            )}
+           {javob && (
+  <div className="ai-answer">
+    <h2>AI javobi</h2>
+    <p className="answer-text">{javob}</p>
+
+    <button
+      type="button"
+      className="secondary"
+      onClick={
+        ovozliJavob
+          ? ovozniToxtatish
+          : javobniOqish
+      }
+    >
+      {ovozliJavob
+        ? "Ovozni to‘xtatish"
+        : "Javobni ovoz chiqarib o‘qish"}
+    </button>
+  </div>
+)}
           </section>
 
           <section className="panel history">
