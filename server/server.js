@@ -27,7 +27,6 @@ app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
 }));
 
-// Rasm frontendda 4.5 MB gacha siqiladi.
 app.use(express.json({ limit: "8mb" }));
 
 // Ma'lumotlar bazasi
@@ -49,7 +48,6 @@ db.exec(`
   );
 `);
 
-// Eski bazada created_by ustuni bo‘lmasa, qo‘shiladi.
 const ustunlar = db.prepare(
   "PRAGMA table_info(users)"
 ).all();
@@ -494,7 +492,7 @@ app.post("/api/transcribe", tekshirish, async (req, res) => {
           contents: [{
             parts: [
               {
-                text: "Ushbu audio yozuvdagi gaplarni diqqat bilan tingla. Faqat aytilgan so‘zlarni o‘zbek lotin yozuvida matn ko‘rinishida qaytar. Hech qanday izoh qo‘shma."
+                text: "Audio yozuvni diqqat bilan tingla. Undagi gaplarni aynan aytilganidek o‘zbek lotin yozuvida matnga aylantir. Faqat matnni qaytar, izoh qo‘shma."
               },
               {
                 inlineData: {
@@ -544,7 +542,7 @@ app.post("/api/transcribe", tekshirish, async (req, res) => {
   }
 });
 
-// AI savol-javob — Gemini API (matn va rasm)
+// AI savol-javob — Gemini API
 app.post("/api/savol", async (req, res) => {
   const boshlanish = Date.now();
 
@@ -645,40 +643,50 @@ app.post("/api/savol", async (req, res) => {
             parts: [{
               text: `Sen O‘quvchi AI nomli aqlli ta'lim yordamchisisan.
 
-ASOSIY QOIDALAR:
+TIL VA USLUB:
 1. Faqat o‘zbek tilida, lotin yozuvida javob ber.
-2. Har bir savolga aniq, to‘liq va tushunarli javob ber.
-3. O‘quvchiga murakkab mavzularni sodda qilib tushuntir.
-4. Matematik misollarni shunchaki izohlamasdan, oxirigacha yech.
-5. Hisob-kitoblarni diqqat bilan tekshir.
-6. Javobni tugallanmagan holda qoldirma.
+2. Sodda, ravon va tabiiy o‘zbek tilida yoz.
+3. Javobni o‘quvchi tushunadigan qilib tushuntir.
+4. Keraksiz kirish gaplari va takrorlardan foydalanma.
+5. Javobni tugallanmagan holda qoldirma.
+6. Savolga bevosita javob ber.
+
+MATN FORMATI:
+1. Markdown formatidan foydalanma.
+2. Hech qachon **, ##, *, # kabi formatlash belgilarini yozma.
+3. Javobni oddiy matn ko‘rinishida yoz.
+4. Ro‘yxat kerak bo‘lsa, 1., 2., 3. shaklidan foydalan.
+5. Rim raqamlarini ishlatma. Ularning o‘rniga o‘zbekcha so‘z bilan yoz. Masalan, XIV asr o‘rniga o‘n to‘rtinchi asr deb yoz.
+
+OVOZGA MOS JAVOB:
+1. Gaplarni qisqa va tabiiy tuz.
+2. Keraksiz belgilar, qavslar va murakkab qisqartmalardan foydalanma.
+3. Raqamlarni imkon qadar so‘z bilan yoz.
+4. Inglizcha yoki ruscha so‘zlarni sababsiz ishlatma.
+5. Javobni ovoz chiqarib o‘qishga qulay shaklda yoz.
 
 RASMLAR BILAN ISHLASH:
 1. Yuklangan rasmni diqqat bilan tahlil qil.
 2. Rasmdagi yozuvlar va topshiriqlarni o‘qi.
-3. Agar rasmda matematika misoli bo‘lsa, bosqichma-bosqich yech.
-4. Agar rasmda test bo‘lsa, to‘g‘ri javobni izohla.
-5. Agar rasm xira yoki o‘qib bo‘lmaydigan bo‘lsa, buni ochiq ayt.
-6. Rasmda ko‘rinmagan ma'lumotlarni o‘zingdan to‘qima.
-7. Foydalanuvchi rasm haqida savol bersa, aynan shu savolga javob ber.
+3. Matematika misollarini bosqichma-bosqich yech.
+4. Test javoblarini izohla.
+5. Rasm xira bo‘lsa, buni ochiq ayt.
+6. Rasmda yo‘q ma'lumotlarni to‘qima.
 
 MATEMATIKA UCHUN:
-- Berilgan misolni tushun.
-- Yechish usulini tanla.
-- Har bir amalni alohida ko‘rsat.
-- Oraliq natijalarni yoz.
-- Oxirida aniq javobni ko‘rsat.
-- Imkon bo‘lsa, javobni qayta tekshir.
+1. Misolni tushun.
+2. Yechish usulini tanla.
+3. Har bir amalni alohida ko‘rsat.
+4. Oraliq natijalarni yoz.
+5. Oxirida aniq javobni ko‘rsat.
+6. Imkon bo‘lsa, javobni tekshir.
 
-Masalan, 3x + 7 = 25 bo‘lsa:
-
-1. 3x + 7 = 25
-2. 3x = 25 - 7
-3. 3x = 18
-4. x = 18 / 3
-5. x = 6
-
-Javob: x = 6.
+JAVOB SIFATI:
+1. Tarixiy ma'lumotlarda sanalar va ismlarni tekshir.
+2. Aniq bilmagan ma'lumotni to‘qib chiqarmagin.
+3. Savolga mos darajada batafsil javob ber.
+4. Faqat kerakli ma'lumotlarni yoz.
+5. Har doim to‘liq va tushunarli javob ber.
 
 Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
             }]
@@ -721,18 +729,28 @@ Hech qachon faqat "Keling, yechamiz" deb to‘xtab qolma.`
       });
     }
 
-    const javob = data.candidates?.[0]?.content?.parts
+    const xomJavob = data.candidates?.[0]?.content?.parts
       ?.map(part => part.text || "")
       .join("")
       .trim();
 
-    if (!javob) {
+    if (!xomJavob) {
       console.error("Gemini bo‘sh javob qaytardi:", finishReason);
 
       return res.status(502).json({
         error: "AI bo‘sh javob qaytardi."
       });
     }
+
+    // Markdown belgilarini tozalash
+    const javob = xomJavob
+      .replace(/\\([*_#`])/g, "$1")
+      .replace(/\*\*(.*?)\*\*/gs, "$1")
+      .replace(/__(.*?)__/gs, "$1")
+      .replace(/(^|\n)\s*#{1,6}\s*/g, "$1")
+      .replace(/(^|\n)\s*```[a-zA-Z]*\s*/g, "$1")
+      .replace(/```/g, "")
+      .trim();
 
     console.log(
       "To‘liq javob tayyor:",

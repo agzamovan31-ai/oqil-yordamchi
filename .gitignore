@@ -32,3 +32,7 @@ dist-ssr
 server/*.sqlite
 server/*.sqlite-shm
 server/*.sqlite-wal
+
+data.sqlite
+data.sqlite-shm
+data.sqlite-wal
