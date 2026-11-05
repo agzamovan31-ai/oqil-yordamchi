@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 import "./App.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -36,6 +39,59 @@ const TARIFLAR = [
     ],
   },
 ];
+
+function Logo() {
+  return (
+    <svg
+      className="logo"
+      viewBox="0 0 100 100"
+      width="70"
+      height="70"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="O‘quvchi AI logotipi"
+    >
+      <defs>
+        <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#792cff" />
+          <stop offset="100%" stopColor="#2024d8" />
+        </linearGradient>
+      </defs>
+
+      <rect width="100" height="100" rx="25" fill="url(#logoBg)" />
+
+      <g fill="none" stroke="#a9eaff" strokeWidth="2.5">
+        <path d="M50 28 L28 40 L17 52 M50 28 L72 40 L83 52" />
+        <path d="M28 40 L50 55 L72 40" />
+      </g>
+
+      <g fill="#fff">
+        <circle cx="50" cy="28" r="4" />
+        <circle cx="28" cy="40" r="4" />
+        <circle cx="72" cy="40" r="4" />
+        <circle cx="17" cy="52" r="3" />
+        <circle cx="83" cy="52" r="3" />
+      </g>
+
+      <path
+        d="M50 38 L54 49 L65 53 L54 57 L50 68 L46 57 L35 53 L46 49 Z"
+        fill="#fff3b0"
+      />
+
+      <path
+        d="M15 62 Q33 56 50 72 Q67 56 85 62 L85 83 Q66 77 50 91 Q34 77 15 83 Z"
+        fill="#fff"
+      />
+
+      <path
+        d="M50 72 V91"
+        stroke="#65dfff"
+        strokeWidth="3"
+        fill="none"
+      />
+    </svg>
+  );
+}
 
 function App() {
   const [foydalanuvchi, setFoydalanuvchi] = useState(null);
@@ -75,10 +131,14 @@ function App() {
   const [ovozYozilmoqda, setOvozYozilmoqda] = useState(false);
   const [ovozAylantirilmoqda, setOvozAylantirilmoqda] = useState(false);
   const [ovozliJavob, setOvozliJavob] = useState(false);
+  const [ovozYaratilmoqda, setOvozYaratilmoqda] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const mediaStreamRef = useRef(null);
+  const audioJavobRef = useRef(null);
+  const audioUrlRef = useRef(null);
+  const speechAbortRef = useRef(null);
 
   // Rasm bilan ishlash
   const [rasm, setRasm] = useState(null);
@@ -145,7 +205,6 @@ function App() {
       return;
     }
 
-    // Asl rasm 50 MB dan oshmasligi kerak
     if (fayl.size > 50 * 1024 * 1024) {
       setXato("Rasm hajmi 50 MB dan oshmasligi kerak.");
       return;
@@ -165,7 +224,6 @@ function App() {
 
       let blob = null;
 
-      // Rasmni 4.5 MB gacha kichraytirish
       for (let i = 0; i < 7; i++) {
         const canvas = document.createElement("canvas");
 
@@ -613,7 +671,11 @@ function App() {
         "audio/ogg",
         "audio/mp4",
       ];
-      const tanlanganTur = turlar.find((tur) => MediaRecorder.isTypeSupported(tur));
+
+      const tanlanganTur = turlar.find((tur) =>
+        MediaRecorder.isTypeSupported(tur)
+      );
+
       const recorder = tanlanganTur
         ? new MediaRecorder(stream, { mimeType: tanlanganTur })
         : new MediaRecorder(stream);
@@ -647,6 +709,7 @@ function App() {
           if (!audioBlob.size) {
             throw new Error("Ovoz yozilmadi. Mikrofonni tekshiring.");
           }
+
           if (audioBlob.size > 5 * 1024 * 1024) {
             throw new Error("Ovoz yozuvi 5 MB dan katta. Qisqaroq gapiring.");
           }
@@ -659,6 +722,7 @@ function App() {
           });
 
           const vergulIndex = dataUrl.indexOf(",");
+
           if (vergulIndex === -1) {
             throw new Error("Ovoz faylini tayyorlashda xatolik yuz berdi.");
           }
@@ -676,11 +740,13 @@ function App() {
           });
 
           const data = await response.json();
+
           if (!response.ok) {
             throw new Error(data.error || "Ovoz matnga aylantirilmadi.");
           }
 
           const matn = String(data.matn || "").trim();
+
           if (!matn) {
             throw new Error("Ovozdan matn aniqlanmadi. Qayta urinib ko‘ring.");
           }
@@ -705,7 +771,10 @@ function App() {
       mediaStreamRef.current = null;
       setOvozYozilmoqda(false);
 
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+      if (
+        error.name === "NotAllowedError" ||
+        error.name === "PermissionDeniedError"
+      ) {
         setXato("Mikrofondan foydalanishga ruxsat bering.");
       } else {
         setXato(error.message || "Mikrofonni ishga tushirib bo‘lmadi.");
@@ -719,39 +788,106 @@ function App() {
     }
   }
 
-  function javobniOqish() {
-  if (!javob) return;
+  async function javobniOqish() {
+    if (!javob?.trim()) return;
 
-  window.speechSynthesis.cancel();
+    try {
+      setXato("");
+      setOvozliJavob(true);
+      setOvozYaratilmoqda(true);
 
-  const nutq = new SpeechSynthesisUtterance(javob);
+      const controller = new AbortController();
+      speechAbortRef.current = controller;
 
-const ovozlar = window.speechSynthesis.getVoices();
+      const response = await fetch(`${API}/api/speech`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ text: javob.trim() }),
+        signal: controller.signal,
+      });
 
-const ozbekOvozi = ovozlar.find(
-  ovoz => ovoz.lang.toLowerCase().startsWith("uz")
-);
+      const data = await response.json();
 
-if (ozbekOvozi) {
-  nutq.voice = ozbekOvozi;
-}
+      if (!response.ok) {
+        throw new Error(data.error || "Ovoz yaratilmadi.");
+      }
 
-nutq.lang = ozbekOvozi ? ozbekOvozi.lang : "uz-UZ";
-nutq.rate = 0.8;
-nutq.pitch = 1;
+      if (!data.audio) {
+        throw new Error("Server ovoz faylini qaytarmadi.");
+      }
 
-  nutq.onend = () => setOvozliJavob(false);
-  nutq.onerror = () => setOvozliJavob(false);
+      const audioBytes = Uint8Array.from(
+        atob(data.audio),
+        (belgi) => belgi.charCodeAt(0)
+      );
 
-  setOvozliJavob(true);
-  window.speechSynthesis.speak(nutq);
-}
+      const audioBlob = new Blob([audioBytes], {
+        type: data.mimeType || "audio/wav",
+      });
 
-// Ovozli javobni to‘xtatish
-function ovozniToxtatish() {
-  window.speechSynthesis.cancel();
-  setOvozliJavob(false);
-}
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioUrlRef.current = audioUrl;
+
+      const audio = new Audio(audioUrl);
+      audioJavobRef.current = audio;
+
+      audio.onended = () => {
+        setOvozliJavob(false);
+        audioJavobRef.current = null;
+
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current);
+          audioUrlRef.current = null;
+        }
+      };
+
+      audio.onerror = () => {
+        setOvozliJavob(false);
+        setXato("Ovoz faylini ijro qilib bo‘lmadi.");
+        audioJavobRef.current = null;
+      };
+
+      await audio.play();
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Ovozli javob xatosi:", error);
+        setXato(error.message || "Ovozli javobni yaratib bo‘lmadi.");
+      }
+
+      setOvozliJavob(false);
+    } finally {
+      setOvozYaratilmoqda(false);
+      speechAbortRef.current = null;
+    }
+  }
+
+  // Ovozli javobni to‘xtatish
+  function ovozniToxtatish() {
+    speechAbortRef.current?.abort();
+    speechAbortRef.current = null;
+
+    if (audioJavobRef.current) {
+      audioJavobRef.current.pause();
+      audioJavobRef.current.currentTime = 0;
+      audioJavobRef.current = null;
+    }
+
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+
+    setOvozYaratilmoqda(false);
+    setOvozliJavob(false);
+  }
+
   // AI ga savol va rasm yuborish
   async function aiDanSorash() {
     if (!savol.trim() && !rasm) {
@@ -867,7 +1003,8 @@ function ovozniToxtatish() {
     return (
       <main className="container">
         <section className="panel auth-panel">
-          <div className="logo">AI</div>
+          <Logo />
+
           <h1>O‘quvchi AI</h1>
 
           <p className="hint">
@@ -958,7 +1095,7 @@ function ovozniToxtatish() {
   return (
     <main className="container">
       <header className="top">
-        <div className="logo">AI</div>
+        <Logo />
 
         <div className="brand-text">
           <h1>O‘quvchi AI</h1>
@@ -1073,18 +1210,22 @@ function ovozniToxtatish() {
               placeholder="Savolingni yoz yoki rasmni Ctrl + V orqali joylashtir..."
             />
 
-<button
-  type="button"
-  className="secondary"
-  onClick={ovozYozilmoqda ? ovozniYozishniToxtatish : ovozliSavol}
-  disabled={ovozAylantirilmoqda}
->
-  {ovozAylantirilmoqda
-    ? "Ovoz matnga aylantirilmoqda..."
-    : ovozYozilmoqda
-      ? "Ovoz yozishni tugatish"
-      : "Mikrofon orqali savol berish"}
-</button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={
+                ovozYozilmoqda
+                  ? ovozniYozishniToxtatish
+                  : ovozliSavol
+              }
+              disabled={ovozAylantirilmoqda}
+            >
+              {ovozAylantirilmoqda
+                ? "Ovoz matnga aylantirilmoqda..."
+                : ovozYozilmoqda
+                  ? "Ovoz yozishni tugatish"
+                  : "Mikrofon orqali savol berish"}
+            </button>
 
             {/* Rasm yuklash: bitta + tugmasi */}
             <div className="image-upload">
@@ -1175,26 +1316,35 @@ function ovozniToxtatish() {
 
             {xato && <p className="error">{xato}</p>}
 
-           {javob && (
-  <div className="ai-answer">
-    <h2>AI javobi</h2>
-    <p className="answer-text">{javob}</p>
+            {javob && (
+              <div className="ai-answer">
+                <h2>AI javobi</h2>
+                <div className="answer-text markdown-body">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeSanitize]}
+                  >
+                    {javob}
+                  </ReactMarkdown>
+                </div>
 
-    <button
-      type="button"
-      className="secondary"
-      onClick={
-        ovozliJavob
-          ? ovozniToxtatish
-          : javobniOqish
-      }
-    >
-      {ovozliJavob
-        ? "Ovozni to‘xtatish"
-        : "Javobni ovoz chiqarib o‘qish"}
-    </button>
-  </div>
-)}
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={
+                    ovozliJavob
+                      ? ovozniToxtatish
+                      : javobniOqish
+                  }
+                >
+                  {ovozYaratilmoqda
+                    ? "Ovoz tayyorlanmoqda..."
+                    : ovozliJavob
+                      ? "Ovozni to‘xtatish"
+                      : "Javobni ovoz chiqarib o‘qish"}
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="panel history">
