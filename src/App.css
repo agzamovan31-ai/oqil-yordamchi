@@ -598,6 +598,31 @@ nav.panel button {
   font-size: 28px;
 }
 
+.grade-picker-wrap {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 10px;
+  padding: 14px 16px;
+  border: 1px solid #e5e3f6;
+  border-radius: 14px;
+  background: #f7f5ff;
+}
+
+.grade-picker-wrap label {
+  color: #5145e5;
+  font-weight: 700;
+}
+
+.grade-picker-wrap select {
+  width: min(220px, 100%);
+  padding: 12px 14px;
+  border: 1px solid #d9d5f2;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1b2d;
+  font-size: 15px;
+}
+
 /* Tarif kartochkalari */
 
 .tariff-list {
@@ -747,6 +772,10 @@ footer {
 
   .tariff-list {
     grid-template-columns: 1fr;
+  }
+
+  .grade-picker-wrap select {
+    width: 100%;
   }
 
   .premium-modal {
