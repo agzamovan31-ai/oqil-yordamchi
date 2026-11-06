@@ -16,6 +16,9 @@ const TARIFLAR = [
       "Savollar tarixi",
       "Oddiy tushuntirishlar",
     ],
+    icon: "✓",
+    theme: "free",
+    badge: "Faol",
   },
   {
     nom: "PRO",
@@ -26,6 +29,9 @@ const TARIFLAR = [
       "Batafsil tushuntirishlar",
       "Matematik yechimlar bo‘yicha ko‘rsatmalar",
     ],
+    icon: "◆",
+    theme: "pro",
+    badge: "Tez orada",
   },
   {
     nom: "PRO MAX",
@@ -37,6 +43,9 @@ const TARIFLAR = [
       "Yuqori darajali tushuntirishlar",
       "Barcha sinflar uchun maxsus yordamlash",
     ],
+    icon: "♛",
+    theme: "pro-max",
+    badge: "Tez orada",
   },
 ];
 
@@ -1771,12 +1780,22 @@ function App() {
               {TARIFLAR.map((tarif) => (
                 <article
                   key={tarif.nom}
-                  className={`tariff-card ${
+                  className={`tariff-card tariff-${tarif.theme} ${
                     tanlanganTarif === tarif.nom
                       ? "tariff-selected"
                       : ""
                   }`}
                 >
+                  <div className="tariff-header">
+                    <div className={`tariff-icon tariff-${tarif.theme}`}>
+                      {tarif.icon}
+                    </div>
+
+                    <span className={`tariff-badge tariff-${tarif.theme}`}>
+                      {tarif.badge}
+                    </span>
+                  </div>
+
                   <h3>{tarif.nom}</h3>
                   <p>{tarif.tavsif}</p>
 
@@ -1788,7 +1807,7 @@ function App() {
                   <ul>
                     {tarif.imkoniyatlar.map((imkoniyat) => (
                       <li key={imkoniyat}>
-                        ✓ {imkoniyat}
+                        <span className="check-mark">✓</span> {imkoniyat}
                       </li>
                     ))}
                   </ul>
