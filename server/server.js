@@ -389,20 +389,15 @@ app.post("/api/auth/subscription", tekshirish, async (req, res) => {
     const plan = normalizeSubscriptionPlan(req.body?.plan);
     const classLevel = Number(req.body?.class_level ?? 1);
 
-    if (!Number.isInteger(classLevel) || classLevel < 1 || classLevel > 11) {
-      return res.status(400).json({
-        error: "Sinf raqami 1 dan 11 gacha bo‘lishi kerak."
+    if (plan !== "FREE") {
+      return res.status(403).json({
+        error: "To‘lov tizimi tez orada ulanadi. Hozircha faqat FREE tarif ishlaydi."
       });
     }
 
-    const accessCheck = validateQuestionAccess({
-      plan,
-      classLevel
-    });
-
-    if (!accessCheck.allowed) {
-      return res.status(403).json({
-        error: accessCheck.error
+    if (!Number.isInteger(classLevel) || classLevel < 1 || classLevel > 6) {
+      return res.status(400).json({
+        error: "FREE tarif uchun sinf raqami 1 dan 6 gacha bo‘lishi kerak."
       });
     }
 
