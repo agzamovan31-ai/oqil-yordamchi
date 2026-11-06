@@ -1237,12 +1237,14 @@ function App() {
                   : "Bepul tarif"}
               </p>
 
-              <button
-                className="premium-button"
-                onClick={() => setPremiumOyna(true)}
-              >
-                Tariflarni ko‘rish
-              </button>
+              {!admin && (
+                <button
+                  className="premium-button"
+                  onClick={() => setPremiumOyna(true)}
+                >
+                  Tariflarni ko‘rish
+                </button>
+              )}
             </div>
 
             <div className="crown">👑</div>
@@ -1483,9 +1485,8 @@ function App() {
           <h2>ADMIN panel</h2>
 
           <p className="hint">
-            Bu panelda faqat o‘zingiz qo‘shgan oddiy
-            foydalanuvchilar ko‘rsatiladi. Ularni o‘chira
-            olmaysiz va boshqa admin tayinlay olmaysiz.
+            Bu panelda barcha foydalanuvchilar ro‘yxati ko‘rsatiladi:
+            email, ro‘yxatdan o‘tgan sana va joriy tarif.
           </p>
 
           {ruxsat.canAddUsers === true ? (
@@ -1551,22 +1552,26 @@ function App() {
             Ro‘yxatni yangilash
           </button>
 
-          <h3>Siz qo‘shgan foydalanuvchilar</h3>
+          <h3>Foydalanuvchilar</h3>
 
           {foydalanuvchilar.length === 0 ? (
             <p className="hint">
               Hozircha ro‘yxatda foydalanuvchi yo‘q.
             </p>
           ) : (
-            foydalanuvchilar.map((user) => (
-              <article
-                className="history-item"
-                key={user.id}
-              >
-                <strong>{user.username}</strong>
-                <span>Foydalanuvchi</span>
-              </article>
-            ))
+            <div className="admin-user-list">
+              {foydalanuvchilar.map((user) => (
+                <article className="history-item admin-user-row" key={user.id}>
+                  <div className="admin-user-meta">
+                    <strong>{user.username}</strong>
+                    <small>Email: {user.email || user.username}</small>
+                    <small>Ro‘yxatdan o‘tgan: {user.created_at ? new Date(user.created_at).toLocaleDateString("uz-UZ") : "-"}</small>
+                    <small>Tarif: {user.subscription_plan || "FREE"}</small>
+                  </div>
+                  <span className="admin-user-role">{user.role}</span>
+                </article>
+              ))}
+            </div>
           )}
         </section>
       )}
