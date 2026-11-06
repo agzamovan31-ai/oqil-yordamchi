@@ -628,71 +628,203 @@ nav.panel button {
 .tariff-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
   text-align: left;
 }
 
 .tariff-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 22px 18px;
-  border: 2px solid #e8e9f2;
-  border-radius: 18px;
+  padding: 20px 18px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 26px;
   background: #fff;
-  transition: 0.2s ease;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.08);
+}
+
+.tariff-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0));
 }
 
 .tariff-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px #24204a12;
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
 }
 
 .tariff-card.tariff-selected {
-  border-color: #5145e5;
-  background: #f8f7ff;
-  box-shadow: 0 8px 25px #5145e51c;
+  border-color: rgba(81, 69, 229, 0.5);
+  box-shadow: 0 18px 40px rgba(81, 69, 229, 0.18);
+}
+
+.tariff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tariff-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.tariff-icon.tariff-free {
+  background: linear-gradient(135deg, #1ccf7a, #0fae6b);
+  color: #fff;
+}
+
+.tariff-icon.tariff-pro {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #eff6ff;
+}
+
+.tariff-icon.tariff-pro-max {
+  background: linear-gradient(135deg, #7c3aed, #f59e0b);
+  color: #fff7ed;
+}
+
+.tariff-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tariff-badge.tariff-free {
+  background: rgba(34, 197, 94, 0.12);
+  color: #167b4d;
+}
+
+.tariff-badge.tariff-pro {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.tariff-badge.tariff-pro-max {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(245, 158, 11, 0.15));
+  color: #6d2bd6;
 }
 
 .tariff-card h3 {
   margin: 0 0 8px;
-  color: #5145e5;
   font-size: 21px;
+  line-height: 1.2;
+}
+
+.tariff-card.tariff-free h3 {
+  color: #11764b;
+}
+
+.tariff-card.tariff-pro h3 {
+  color: #1d4ed8;
+}
+
+.tariff-card.tariff-pro-max h3 {
+  color: #5a2ec4;
 }
 
 .tariff-card p {
-  color: #777e91;
+  color: #6c758a;
   font-size: 14px;
+  line-height: 1.6;
 }
 
 .tariff-price {
-  margin: 10px 0 15px;
-  color: #282344;
-  font-size: 23px;
+  margin: 12px 0 16px;
+  color: #1f2937;
+  font-size: 26px;
   font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .tariff-price small {
-  color: #777e91;
+  color: #6b7280;
   font-size: 13px;
-  font-weight: normal;
+  font-weight: 600;
 }
 
 .tariff-card ul {
   flex: 1;
   padding: 0;
-  margin: 0 0 20px;
+  margin: 0 0 18px;
   list-style: none;
 }
 
 .tariff-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin: 12px 0;
-  color: #555c70;
+  color: #495468;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+.check-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(34, 197, 94, 0.12);
+  color: #167b4d;
 }
 
 .tariff-card .premium-button {
   width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tariff-card.tariff-free .premium-button {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.tariff-card.tariff-free .premium-button:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.tariff-card.tariff-pro .premium-button,
+.tariff-card.tariff-pro-max .premium-button {
+  background: rgba(148, 163, 184, 0.12);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.tariff-card.tariff-pro .premium-button:hover,
+.tariff-card.tariff-pro-max .premium-button:hover {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.tariff-card .premium-button:disabled {
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 /* Obuna muddati */
