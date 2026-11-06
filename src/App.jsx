@@ -167,8 +167,7 @@ function App() {
   const [tanlangan, setTanlangan] = useState(null);
 
   const [premiumOyna, setPremiumOyna] = useState(false);
-  const [tanlanganTarif, setTanlanganTarif] = useState("PRO MAX");
-  const [muddat, setMuddat] = useState(1);
+  const [tanlanganTarif, setTanlanganTarif] = useState("FREE");
   const [sinf, setSinf] = useState(1);
 
   const [obuna, setObuna] = useState(() => {
@@ -1015,6 +1014,11 @@ function App() {
 
     const planToSave = tanlanganTarif || "FREE";
 
+    if (planToSave !== "FREE") {
+      setXato("To‘lov tizimi tez orada ulanadi. Hozircha faqat FREE tarif ishlaydi.");
+      return;
+    }
+
     try {
       const response = await fetch(`${API}/api/auth/subscription`, {
         method: "POST",
@@ -1034,11 +1038,6 @@ function App() {
         throw new Error(data.error || "Tarifni yangilab bo‘lmadi.");
       }
 
-      const jamiOy =
-        tanlanganTarif === "PRO MAX" && muddat === 3
-          ? 4
-          : muddat;
-
       setObuna({
         tarif: planToSave,
         tugashVaqti: null,
@@ -1052,12 +1051,7 @@ function App() {
 
       setPremiumOyna(false);
       setXato("");
-      setXabarnoma(
-        `Demo: ${planToSave} ${jamiOy} oyga faollashtirildi. Pul yechilmadi.`
-      );
-      alert(
-        `Demo: ${planToSave} ${jamiOy} oyga faollashtirildi. Pul yechilmadi.`
-      );
+      setXabarnoma("FREE tarif faollashtirildi.");
     } catch (error) {
       setXato(error.message);
     }
@@ -1802,66 +1796,51 @@ function App() {
                   <button
                     className="premium-button"
                     onClick={() => {
+                      if (tarif.nom === "FREE") {
+                        setTanlanganTarif("FREE");
+                        return;
+                      }
+
                       setTanlanganTarif(tarif.nom);
-                      setMuddat(1);
                     }}
+                    disabled={tarif.nom !== "FREE"}
                   >
-                    {tanlanganTarif === tarif.nom
-                      ? "Tanlandi"
-                      : "Tarifni tanlash"}
+                    {tarif.nom === "FREE"
+                      ? tanlanganTarif === tarif.nom
+                        ? "Tanlandi"
+                        : "Tarifni tanlash"
+                      : "Tez orada"}
                   </button>
                 </article>
               ))}
             </div>
 
+            {tanlanganTarif === "FREE" && (
+              <div className="duration-box">
+                <h3>FREE tarif</h3>
+                <p>Bu tarif hozircha faqat bepul imkoniyatlar bilan ishlaydi.</p>
+              </div>
+            )}
+
             {tanlanganTarif !== "FREE" && (
               <div className="duration-box">
-                <h3>Obuna muddati</h3>
-
-                <div className="duration-buttons">
-                  {[1, 3].map((oy) => (
-                    <button
-                      key={oy}
-                      className={
-                        muddat === oy ? "duration-active" : ""
-                      }
-                      onClick={() => setMuddat(oy)}
-                    >
-                      {oy} oy
-                    </button>
-                  ))}
-                </div>
-
-                {tanlanganTarif === "PRO MAX" &&
-                  muddat === 3 && (
-                    <p className="success">
-                      3 oy uchun 1 oy bonus! Jami 4 oy.
-                    </p>
-                  )}
-
-                <p>
-                  Demo narx:{" "}
-                  <strong>
-                    {(
-                      TARIFLAR.find(
-                        (t) => t.nom === tanlanganTarif
-                      ).narx * muddat
-                    ).toLocaleString("uz-UZ")}{" "}
-                    so‘m
-                  </strong>
-                </p>
+                <h3>To‘lov tizimi</h3>
+                <p>Tez orada. Click, Payme yoki plastik karta to‘lovi qo‘shiladi.</p>
               </div>
             )}
 
             <p className="payment-notice">
-              Bu sinov to‘lovi. Haqiqiy pul yechilmaydi.
+              Hozircha faqat FREE tarif faol. Pullik tariflar tez orada ulanadi.
             </p>
 
             <button
               className="premium-button modal-button"
               onClick={demoObuna}
+              disabled={tanlanganTarif !== "FREE"}
             >
-              Demo orqali faollashtirish
+              {tanlanganTarif === "FREE"
+                ? "FREE tarifini faollashtirish"
+                : "Tez orada"}
             </button>
 
             <button
