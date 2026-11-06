@@ -10,35 +10,46 @@ const TARIFLAR = [
   {
     nom: "FREE",
     narx: 0,
-    tavsif: "Boshlash uchun",
+    tavsif: "1–6-sinf uchun boshlang‘ich daraja",
     imkoniyatlar: [
-      "AI savol-javob",
+      "1–6-sinf savollariga javob",
       "Savollar tarixi",
       "Oddiy tushuntirishlar",
     ],
   },
   {
     nom: "PRO",
-    narx: 15000,
-    tavsif: "Ko‘proq imkoniyatlar",
+    narx: 90000,
+    tavsif: "1–7-sinf uchun kengaytirilgan imkoniyat",
     imkoniyatlar: [
-      "FREE imkoniyatlari",
-      "Ko‘proq savol berish",
+      "1–7-sinf savollariga javob",
       "Batafsil tushuntirishlar",
+      "Matematik yechimlar bo‘yicha ko‘rsatmalar",
     ],
   },
   {
     nom: "PRO MAX",
-    narx: 30000,
-    tavsif: "To‘liq imkoniyatlar",
+    narx: 110000,
+    tavsif: "1–11-sinf uchun to‘liq imkoniyat",
     imkoniyatlar: [
-      "PRO imkoniyatlari",
-      "Kengaytirilgan AI",
-      "Ustuvor foydalanish",
-      "3 oy olganda 1 oy bonus",
+      "1–11-sinf savollariga javob",
+      "Kengaytirilgan AI yechimlar",
+      "Yuqori darajali tushuntirishlar",
+      "Barcha sinflar uchun maxsus yordamlash",
     ],
   },
 ];
+
+const SINFLAR = Array.from({ length: 11 }, (_, index) => index + 1);
+const PLAN_LIMITS = {
+  FREE: 6,
+  PRO: 7,
+  "PRO MAX": 11,
+};
+
+function getMaxAllowedClassForPlan(plan) {
+  return PLAN_LIMITS[plan] ?? PLAN_LIMITS.FREE;
+}
 
 function Logo() {
   return (
@@ -158,6 +169,7 @@ function App() {
   const [premiumOyna, setPremiumOyna] = useState(false);
   const [tanlanganTarif, setTanlanganTarif] = useState("PRO MAX");
   const [muddat, setMuddat] = useState(1);
+  const [sinf, setSinf] = useState(1);
 
   const [obuna, setObuna] = useState(() => {
     try {
@@ -360,7 +372,18 @@ function App() {
           throw new Error(data.error || "Sessiya tugagan.");
         }
 
-        setFoydalanuvchi(data.foydalanuvchi || data.user || data);
+        const user = data.foydalanuvchi || data.user || data;
+        setFoydalanuvchi(user);
+
+        const plan = user?.subscription_plan || "FREE";
+        const grade = Number(user?.class_level || 1);
+
+        setTanlanganTarif(plan);
+        setSinf(Number.isFinite(grade) && grade >= 1 && grade <= 11 ? grade : 1);
+        setObuna({
+          tarif: plan,
+          tugashVaqti: user?.subscription_until || null,
+        });
       } catch {
         localStorage.removeItem("oqilAiToken");
         setToken("");
@@ -420,8 +443,15 @@ function App() {
 
       localStorage.setItem("oqilAiToken", data.token);
 
-      setFoydalanuvchi(data.foydalanuvchi || data.user || null);
+      const user = data.foydalanuvchi || data.user || null;
+      setFoydalanuvchi(user);
       setToken(data.token);
+      setSinf(Number(user?.class_level || 1));
+      setTanlanganTarif(user?.subscription_plan || "FREE");
+      setObuna({
+        tarif: user?.subscription_plan || "FREE",
+        tugashVaqti: user?.subscription_until || null,
+      });
 
       setPassword("");
       setParolTakror("");
@@ -895,6 +925,17 @@ function App() {
       return;
     }
 
+    const currentPlan = String(obuna?.tarif || "FREE").toUpperCase();
+    const planLimit = getMaxAllowedClassForPlan(currentPlan);
+
+    if (Number(sinf) > planLimit) {
+      setXato(
+        `${sinf}-sinf savol uchun ${currentPlan === "FREE" ? "PRO yoki PRO MAX" : currentPlan === "PRO" ? "PRO MAX" : "yangi tarif"} kerak. Tariflarni ko‘rib chiqish uchun yuqoridagi "Tariflarni ko‘rish" tugmasini bosing.`
+      );
+      setPremiumOyna(true);
+      return;
+    }
+
     setAiYuklanmoqda(true);
     setJavob("");
     setXato("");
@@ -908,6 +949,7 @@ function App() {
         },
         body: JSON.stringify({
           savol: savol.trim(),
+          class_level: Number(sinf),
           rasm: rasm
             ? {
                 mimeType: rasm.mimeType,
@@ -965,33 +1007,60 @@ function App() {
     }
   }
 
-  function demoObuna() {
-    if (tanlanganTarif === "FREE") {
-      setObuna({
-        tarif: "FREE",
-        tugashVaqti: null,
-      });
-
-      setPremiumOyna(false);
+  async function demoObuna() {
+    if (!token) {
+      setXato("Tarifni saqlash uchun avval tizimga kiring.");
       return;
     }
 
-    const jamiOy =
-      tanlanganTarif === "PRO MAX" && muddat === 3
-        ? 4
-        : muddat;
+    const planToSave = tanlanganTarif || "FREE";
 
-    setObuna({
-      tarif: tanlanganTarif,
-      tugashVaqti:
-        Date.now() + jamiOy * 30 * 24 * 60 * 60 * 1000,
-    });
+    try {
+      const response = await fetch(`${API}/api/auth/subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({
+          plan: planToSave,
+          class_level: sinf,
+        }),
+      });
 
-    setPremiumOyna(false);
+      const data = await response.json();
 
-    alert(
-      `Demo: ${tanlanganTarif} ${jamiOy} oyga faollashtirildi. Pul yechilmadi.`
-    );
+      if (!response.ok) {
+        throw new Error(data.error || "Tarifni yangilab bo‘lmadi.");
+      }
+
+      const jamiOy =
+        tanlanganTarif === "PRO MAX" && muddat === 3
+          ? 4
+          : muddat;
+
+      setObuna({
+        tarif: planToSave,
+        tugashVaqti: null,
+      });
+
+      setFoydalanuvchi((old) => old ? {
+        ...old,
+        subscription_plan: planToSave,
+        class_level: sinf,
+      } : old);
+
+      setPremiumOyna(false);
+      setXato("");
+      setXabarnoma(
+        `Demo: ${planToSave} ${jamiOy} oyga faollashtirildi. Pul yechilmadi.`
+      );
+      alert(
+        `Demo: ${planToSave} ${jamiOy} oyga faollashtirildi. Pul yechilmadi.`
+      );
+    } catch (error) {
+      setXato(error.message);
+    }
   }
 
   const amaldagiObuna =
@@ -1178,6 +1247,26 @@ function App() {
 
           <section className="panel">
             <h2>Yangi savol</h2>
+
+            <div className="grade-picker-wrap">
+              <label htmlFor="sinfTanlash">Sinfni tanlang</label>
+              <select
+                id="sinfTanlash"
+                value={sinf}
+                onChange={(event) => setSinf(Number(event.target.value))}
+              >
+                {SINFLAR.map((sinfItem) => (
+                  <option key={sinfItem} value={sinfItem}>
+                    {sinfItem}-sinf
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <p className="hint">
+              {`Sizning hozirgi tarifingiz: ${amaldagiObuna.tarif}. `}
+              {`Bu tarifda ${getMaxAllowedClassForPlan(amaldagiObuna.tarif || "FREE")}-sinfgacha savollar qabul qilinadi.`}
+            </p>
 
             <p className="hint">
               Savolingni yoz yoki rasm yukla. AI fanlar,

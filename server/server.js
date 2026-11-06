@@ -32,6 +32,51 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+const PLAN_LIMITS = {
+  FREE: 6,
+  PRO: 7,
+  "PRO MAX": 11
+};
+
+function normalizeSubscriptionPlan(plan) {
+  const value = String(plan || "FREE").trim().toUpperCase();
+
+  if (value === "PRO") return "PRO";
+  if (value === "PRO MAX") return "PRO MAX";
+  return "FREE";
+}
+
+function getMaxAllowedClassForPlan(plan) {
+  const normalizedPlan = normalizeSubscriptionPlan(plan);
+  return PLAN_LIMITS[normalizedPlan] ?? PLAN_LIMITS.FREE;
+}
+
+function validateQuestionAccess({ plan, classLevel }) {
+  const grade = Number(classLevel);
+
+  if (!Number.isInteger(grade) || grade < 1 || grade > 11) {
+    return {
+      allowed: false,
+      error: "Sinf raqami 1 dan 11 gacha bo‘lishi kerak."
+    };
+  }
+
+  const maxClass = getMaxAllowedClassForPlan(plan);
+
+  if (grade > maxClass) {
+    return {
+      allowed: false,
+      error: `Bu tarifda ${grade}-sinf savollariga javob berish mumkin emas. ${
+        plan === "FREE" ? "PRO yoki PRO MAX tarifiga o‘ting."
+          : plan === "PRO" ? "PRO MAX tarifiga o‘ting."
+          : "Yangi tarif tanlang."
+      }`
+    };
+  }
+
+  return { allowed: true };
+}
+
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
 }));
@@ -47,8 +92,32 @@ async function initDatabase() {
       role TEXT NOT NULL DEFAULT 'user',
       permissions TEXT NOT NULL DEFAULT '{}',
       created_by BIGINT,
-      created_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')
+      created_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS'),
+      subscription_plan TEXT NOT NULL DEFAULT 'FREE',
+      class_level INTEGER NOT NULL DEFAULT 1,
+      subscription_status TEXT NOT NULL DEFAULT 'demo',
+      subscription_until TIMESTAMPTZ
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS subscription_plan TEXT NOT NULL DEFAULT 'FREE';
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS class_level INTEGER NOT NULL DEFAULT 1;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'demo';
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS subscription_until TIMESTAMPTZ;
   `);
 
   await pool.query(`
@@ -149,7 +218,7 @@ async function tekshirish(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const { rows } = await pool.query(
-      "SELECT id, username, role, permissions FROM users WHERE id = $1",
+      "SELECT id, username, role, permissions, subscription_plan, class_level, subscription_status, subscription_until FROM users WHERE id = $1",
       [decoded.id]
     );
 
@@ -248,7 +317,7 @@ app.post("/api/auth/register", async (req, res) => {
     const hash = bcrypt.hashSync(password, 12);
 
     const result = await pool.query(
-      "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, role",
+      "INSERT INTO users (username, password_hash, subscription_plan, class_level, subscription_status) VALUES ($1, $2, 'FREE', 1, 'demo') RETURNING id, username, role, subscription_plan, class_level, subscription_status",
       [trimmedUsername, hash]
     );
 
@@ -307,15 +376,70 @@ app.post("/api/auth/login", loginLimit, async (req, res) => {
     user: {
       id: user.id,
       username: user.username,
-      role: user.role
+      role: user.role,
+      subscription_plan: normalizeSubscriptionPlan(user.subscription_plan),
+      class_level: Number(user.class_level || 1),
+      subscription_status: user.subscription_status || "demo"
     }
   });
+});
+
+app.post("/api/auth/subscription", tekshirish, async (req, res) => {
+  try {
+    const plan = normalizeSubscriptionPlan(req.body?.plan);
+    const classLevel = Number(req.body?.class_level ?? 1);
+
+    if (!Number.isInteger(classLevel) || classLevel < 1 || classLevel > 11) {
+      return res.status(400).json({
+        error: "Sinf raqami 1 dan 11 gacha bo‘lishi kerak."
+      });
+    }
+
+    const accessCheck = validateQuestionAccess({
+      plan,
+      classLevel
+    });
+
+    if (!accessCheck.allowed) {
+      return res.status(403).json({
+        error: accessCheck.error
+      });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET subscription_plan = $1,
+           class_level = $2,
+           subscription_status = 'demo',
+           subscription_until = NULL
+       WHERE id = $3
+       RETURNING id, username, role, subscription_plan, class_level, subscription_status`,
+      [plan, classLevel, req.user.id]
+    );
+
+    const updatedUser = rows[0];
+
+    res.json({
+      xabar: `${plan} tarif faollashtirildi.`,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error("Subscription update error:", error);
+    res.status(500).json({
+      error: "Tarifni yangilab bo‘lmadi."
+    });
+  }
 });
 
 // Joriy foydalanuvchi
 app.get("/api/auth/me", tekshirish, (req, res) => {
   res.json({
-    user: req.user
+    user: {
+      ...req.user,
+      subscription_plan: normalizeSubscriptionPlan(req.user.subscription_plan),
+      class_level: Number(req.user.class_level || 1),
+      subscription_status: req.user.subscription_status || "demo"
+    }
   });
 });
 
@@ -716,7 +840,7 @@ app.post("/api/speech", tekshirish, speechLimit, async (req, res) => {
 });
 
 // AI savol-javob — Gemini API (matn va rasm)
-app.post("/api/savol", async (req, res) => {
+app.post("/api/savol", tekshirish, async (req, res) => {
   const boshlanish = Date.now();
 
   try {
@@ -725,6 +849,18 @@ app.post("/api/savol", async (req, res) => {
       : "";
 
     const rasm = req.body?.rasm;
+    const classLevel = Number(req.body?.class_level ?? req.user.class_level ?? 1);
+    const selectedPlan = normalizeSubscriptionPlan(req.user.subscription_plan);
+    const accessCheck = validateQuestionAccess({
+      plan: selectedPlan,
+      classLevel
+    });
+
+    if (!accessCheck.allowed) {
+      return res.status(403).json({
+        error: accessCheck.error
+      });
+    }
 
     if (!savol && !rasm) {
       return res.status(400).json({
