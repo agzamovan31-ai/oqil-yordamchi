@@ -99,7 +99,10 @@ function validateQuestionAccess({ plan, classLevel }) {
 }
 
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error("CORS: ruxsat yo'q"));
+  }
 }));
 
 app.use(express.json({ limit: "8mb" }));
