@@ -216,7 +216,7 @@ async function initDatabase() {
   }
 
   if (!owner) {
-    const hash = bcrypt.hashSync(process.env.OWNER_PASSWORD, 12);
+    const hash = bcrypt.hashSync(process.env.OWNER_PASSWORD.trim(), 12);
 
     await pool.query(
       "INSERT INTO users (username, password_hash, role, permissions) VALUES ($1, $2, 'owner', '{}')",
@@ -224,6 +224,10 @@ async function initDatabase() {
     );
 
     console.log("EGA akkaunti yaratildi.");
+  } else if (process.env.OWNER_PASSWORD_SYNC === "true") {
+    const hash = bcrypt.hashSync(process.env.OWNER_PASSWORD.trim(), 12);
+    await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [hash, owner.id]);
+    console.log("EGA paroli yangilandi.");
   }
 
   if (ADMIN_EMAIL) {
