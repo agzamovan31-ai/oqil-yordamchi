@@ -39,3 +39,6 @@ data.sqlite-wal
 
 # Backups
 backups/
+
+# Local admin reset helper (do not commit)
+server/tmp-admin-reset.mjs

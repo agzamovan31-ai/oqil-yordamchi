@@ -50,6 +50,30 @@ const TARIFLAR = [
 ];
 
 const SINFLAR = Array.from({ length: 11 }, (_, index) => index + 1);
+const FANLAR = [
+  { nom: "Matematika", icon: "∑" },
+  { nom: "Algebra", icon: "∑" },
+  { nom: "Geometriya", icon: "▱" },
+  { nom: "Fizika", icon: "⚡" },
+  { nom: "Kimyo", icon: "⚗" },
+  { nom: "Biologiya", icon: "🧬" },
+  { nom: "Tarix", icon: "🏛" },
+  { nom: "O‘zbekiston tarixi", icon: "🏛" },
+  { nom: "Jahon tarixi", icon: "🌐" },
+  { nom: "Geografiya", icon: "🌍" },
+  { nom: "Tabiiy fanlar", icon: "🌿" },
+  { nom: "Astronomiya", icon: "☀" },
+  { nom: "Ona tili va adabiyot", icon: "📚" },
+  { nom: "Ingliz tili", icon: "🌐" },
+  { nom: "Rus tili", icon: "🗣" },
+  { nom: "Musiqa madaniyati", icon: "♪" },
+  { nom: "Tasviriy san’at", icon: "🎨" },
+  { nom: "Texnologiya", icon: "🛠" },
+  { nom: "Davlat va huquq asoslari", icon: "⚖" },
+  { nom: "Iqtisodiy bilim asoslari", icon: "💰" },
+  { nom: "Chizmachilik", icon: "📐" },
+  { nom: "Informatika", icon: "💻" },
+];
 const PLAN_LIMITS = {
   FREE: 6,
   PRO: 7,
@@ -134,6 +158,28 @@ function App() {
   const [yangiParolKorsat, setYangiParolKorsat] = useState(false);
 
   const [sahifa, setSahifa] = useState("asosiy");
+  const [chatlar, setChatlar] = useState([]);
+  const [aktivChat, setAktivChat] = useState(null);
+  const [chatXabarlar, setChatXabarlar] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatYuklanmoqda, setChatYuklanmoqda] = useState(false);
+  const [tahrirChatId, setTahrirChatId] = useState(null);
+  const [tahrirNom, setTahrirNom] = useState("");
+  const [testSavollar, setTestSavollar] = useState([]);
+  const [testIndex, setTestIndex] = useState(0);
+  const [testJavoblar, setTestJavoblar] = useState({});
+  const [testNatija, setTestNatija] = useState(null);
+  const [testYuklanmoqda, setTestYuklanmoqda] = useState(false);
+  const [tarjimaMatn, setTarjimaMatn] = useState("");
+  const [tarjimaNatija, setTarjimaNatija] = useState("");
+  const [tarjimaYuklanmoqda, setTarjimaYuklanmoqda] = useState(false);
+  const [kunlikVazifalar, setKunlikVazifalar] = useState([]);
+  const [yutuqlar, setYutuqlar] = useState([]);
+  const [xatolar, setXatolar] = useState([]);
+  const [profil, setProfil] = useState(null);
+  const [profilNom, setProfilNom] = useState("");
+  const [profilSinf, setProfilSinf] = useState(1);
+  const [statistika, setStatistika] = useState(null);
   const [foydalanuvchilar, setFoydalanuvchilar] = useState([]);
 
   const [yangiUsername, setYangiUsername] = useState("");
@@ -143,6 +189,7 @@ function App() {
   const [adminUsername, setAdminUsername] = useState("");
   const [canAddUsers, setCanAddUsers] = useState(true);
   const [canRequestGifts, setCanRequestGifts] = useState(true);
+  const [dashboardSearch, setDashboardSearch] = useState("");
 
   const [savol, setSavol] = useState("");
   const [javob, setJavob] = useState("");
@@ -177,6 +224,7 @@ function App() {
 
   const [premiumOyna, setPremiumOyna] = useState(false);
   const [tanlanganTarif, setTanlanganTarif] = useState("FREE");
+  const [fan, setFan] = useState("Matematika");
   const [sinf, setSinf] = useState(1);
 
   const [obuna, setObuna] = useState(() => {
@@ -195,6 +243,32 @@ function App() {
   const rol = String(foydalanuvchi?.role || "user").toLowerCase();
   const ega = rol === "owner";
   const admin = rol === "admin";
+  const unlimitedAccess = ["owner", "admin"].includes(rol);
+
+  const totalUsers = foydalanuvchilar.length;
+  const adminUsers = foydalanuvchilar.filter(
+    (user) => String(user.role || "").toLowerCase() === "admin"
+  ).length;
+  const freeUsers = foydalanuvchilar.filter(
+    (user) => String(user.subscription_plan || "FREE").toUpperCase() === "FREE"
+  ).length;
+  const paidUsers = foydalanuvchilar.filter(
+    (user) => String(user.subscription_plan || "FREE").toUpperCase() !== "FREE"
+  ).length;
+
+  const filteredUsers = foydalanuvchilar.filter((user) => {
+    const q = dashboardSearch.trim().toLowerCase();
+    if (!q) return true;
+
+    return [
+      user.username,
+      user.email,
+      user.role,
+      user.subscription_plan,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(q));
+  });
 
   let ruxsat = {};
 
@@ -225,8 +299,8 @@ function App() {
       return;
     }
 
-    if (fayl.size > 50 * 1024 * 1024) {
-      setXato("Rasm hajmi 50 MB dan oshmasligi kerak.");
+    if (fayl.size > 10 * 1024 * 1024) {
+      setXato("Rasm hajmi 10 MB dan oshmasligi kerak.");
       return;
     }
 
@@ -934,9 +1008,9 @@ function App() {
     }
 
     const currentPlan = String(obuna?.tarif || "FREE").toUpperCase();
-    const planLimit = getMaxAllowedClassForPlan(currentPlan);
+    const planLimit = unlimitedAccess ? 11 : getMaxAllowedClassForPlan(currentPlan);
 
-    if (Number(sinf) > planLimit) {
+    if (!unlimitedAccess && Number(sinf) > planLimit) {
       setXato(
         `${sinf}-sinf savol uchun ${currentPlan === "FREE" ? "PRO yoki PRO MAX" : currentPlan === "PRO" ? "PRO MAX" : "yangi tarif"} kerak. Tariflarni ko‘rib chiqish uchun yuqoridagi "Tariflarni ko‘rish" tugmasini bosing.`
       );
@@ -957,6 +1031,7 @@ function App() {
         },
         body: JSON.stringify({
           savol: savol.trim(),
+          fan,
           class_level: Number(sinf),
           rasm: rasm
             ? {
@@ -978,6 +1053,7 @@ function App() {
       const yangiSavol = {
         id: Date.now(),
         matn: savol.trim() || `Rasm: ${rasm.nomi}`,
+        fan,
         javob: data.javob || "",
         vaqt: new Date().toLocaleString("uz-UZ"),
       };
@@ -992,6 +1068,7 @@ function App() {
 
   function tarixdanOchish(item) {
     setSavol(item.matn);
+    setFan(item.fan || "Matematika");
     setJavob(item.javob || "");
     setTanlangan(item.id);
     setRasm(null);
@@ -1064,6 +1141,76 @@ function App() {
     } catch (error) {
       setXato(error.message);
     }
+  }
+
+  async function chatlarniYuklash() {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API}/api/chats`, { headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok) setChatlar(data.chats || []);
+    } catch {}
+  }
+
+  async function yangiChat() {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API}/api/chats`, { method: "POST", headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok && data.chat) {
+        setChatlar((old) => [data.chat, ...old]);
+        setAktivChat(data.chat.id);
+        setChatXabarlar([]);
+      }
+    } catch {}
+  }
+
+  async function chatOchish(id) {
+    setAktivChat(id);
+    try {
+      const res = await fetch(`${API}/api/chats/${id}/messages`, { headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok) setChatXabarlar(data.messages || []);
+    } catch {}
+  }
+
+  async function chatXabarYuborish() {
+    if (!chatInput.trim() || !aktivChat) return;
+    const matn = chatInput.trim();
+    setChatInput("");
+    setChatXabarlar((old) => [...old, { id: Date.now(), role: "user", content: matn }]);
+    setChatYuklanmoqda(true);
+    try {
+      const res = await fetch(`${API}/api/chats/${aktivChat}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ message: matn })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Xato");
+      setChatXabarlar((old) => [...old, { id: Date.now() + 1, role: "assistant", content: data.reply }]);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setChatYuklanmoqda(false);
+    }
+  }
+
+  async function chatNominiOzgartirish(id) {
+    const nom = tahrirNom.trim();
+    if (!nom) return;
+    try {
+      const res = await fetch(`${API}/api/chats/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ title: nom })
+      });
+      if (res.ok) {
+        setChatlar((old) => old.map((c) => (c.id === id ? { ...c, title: nom } : c)));
+      }
+    } catch {}
+    setTahrirChatId(null);
+    setTahrirNom("");
   }
 
   const amaldagiObuna =
@@ -1189,9 +1336,37 @@ function App() {
       <nav className="panel actions">
         <button
           className="secondary"
-          onClick={() => setSahifa("asosiy")}
+          onClick={() => { setSahifa("chat"); chatlarniYuklash(); }}
         >
-          AI yordamchi
+          AI Chat
+        </button>
+
+        <button className="secondary" onClick={() => setSahifa("test")}>
+          Test
+        </button>
+
+        <button className="secondary" onClick={() => setSahifa("tarjimon")}>
+          Tarjimon
+        </button>
+
+        <button className="secondary" onClick={() => setSahifa("profil")}>
+          Profil
+        </button>
+
+        <button className="secondary" onClick={() => { setSahifa("kunlik"); fetch(`${API}/api/daily-tasks`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setKunlikVazifalar(d.tasks||[])).catch(()=>{}); }}>
+          Kunlik
+        </button>
+
+        <button className="secondary" onClick={() => { setSahifa("xatolar"); fetch(`${API}/api/errors`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setXatolar(d.errors||[])).catch(()=>{}); }}>
+          Xatolar
+        </button>
+
+        <button className="secondary" onClick={() => { setSahifa("yutuqlar"); fetch(`${API}/api/achievements`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setYutuqlar(d.achievements||[])).catch(()=>{}); }}>
+          Yutuqlar
+        </button>
+
+        <button className="secondary" onClick={() => { setSahifa("statistika"); fetch(`${API}/api/stats`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setStatistika(d)).catch(()=>{}); }}>
+          Statistika
         </button>
 
         {admin && (
@@ -1268,9 +1443,31 @@ function App() {
               </select>
             </div>
 
+            <div className="subject-picker-wrap">
+              <label>Fan tanlang</label>
+              <div className="subject-grid">
+                {FANLAR.map((item) => (
+                  <button
+                    key={item.nom}
+                    type="button"
+                    className={`subject-card ${fan === item.nom ? "subject-active" : ""}`}
+                    onClick={() => setFan(item.nom)}
+                  >
+                    <span className="subject-icon">{item.icon}</span>
+                    <span>{item.nom}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="hint selected-subject-label">
+              Tanlangan fan: <strong>{fan}</strong>
+            </p>
+
             <p className="hint">
-              {`Sizning hozirgi tarifingiz: ${amaldagiObuna.tarif}. `}
-              {`Bu tarifda ${getMaxAllowedClassForPlan(amaldagiObuna.tarif || "FREE")}-sinfgacha savollar qabul qilinadi.`}
+              {unlimitedAccess
+                ? "Sizda PRO MAX imkoniyatlari yoqilgan. Barcha 1–11-sinflar uchun cheklovsiz foydalanish mumkin."
+                : `Sizning hozirgi tarifingiz: ${amaldagiObuna.tarif}. ${getMaxAllowedClassForPlan(amaldagiObuna.tarif || "FREE")}-sinfgacha savollar qabul qilinadi.`}
             </p>
 
             <p className="hint">
@@ -1389,7 +1586,7 @@ function App() {
               )}
 
               <small className="hint">
-                JPG, PNG yoki WEBP. Maksimal hajmi: 50 MB.
+                JPG, PNG yoki WEBP. Maksimal hajmi: 10 MB.
                 Rasm AI uchun avtomatik kichraytiriladi.
               </small>
             </div>
@@ -1464,6 +1661,9 @@ function App() {
                     >
                       <strong>{item.matn.slice(0, 90)}</strong>
                       <small>{item.vaqt}</small>
+                      <span className="history-subject-tag">
+                        {item.fan || "Matematika"}
+                      </span>
                     </button>
 
                     <button
@@ -1480,276 +1680,568 @@ function App() {
         </>
       )}
 
-      {sahifa === "admin" && admin && (
+      {sahifa === "chat" && (
         <section className="panel">
-          <h2>ADMIN panel</h2>
-
-          <p className="hint">
-            Bu panelda barcha foydalanuvchilar ro‘yxati ko‘rsatiladi:
-            email, ro‘yxatdan o‘tgan sana va joriy tarif.
-          </p>
-
-          {ruxsat.canAddUsers === true ? (
-            <div className="admin-add">
-              <h3>Foydalanuvchi qo‘shish</h3>
-
-              <input
-                placeholder="Yangi foydalanuvchi logini"
-                value={yangiUsername}
-                onChange={(e) =>
-                  setYangiUsername(e.target.value)
-                }
-              />
-
-              <div className="password-box">
-                <input
-                  type={
-                    yangiParolKorsat ? "text" : "password"
-                  }
-                  placeholder="Yangi foydalanuvchi paroli"
-                  value={yangiPassword}
-                  onChange={(e) =>
-                    setYangiPassword(e.target.value)
-                  }
-                />
-
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() =>
-                    setYangiParolKorsat(!yangiParolKorsat)
-                  }
-                >
-                  {yangiParolKorsat
-                    ? "Yashirish"
-                    : "Ko‘rsatish"}
-                </button>
+          <h2>AI Chat</h2>
+          <div className="chat-layout" style={{ display: "flex", gap: 12 }}>
+            <div style={{ width: 200 }}>
+              <button className="primary" onClick={yangiChat}>Yangi suhbat</button>
+              <div style={{ marginTop: 8 }}>
+                {chatlar.map((c) => (
+                  <div key={c.id} style={{ marginBottom: 4 }}>
+                    {tahrirChatId === c.id ? (
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <input value={tahrirNom} onChange={(e) => setTahrirNom(e.target.value)} style={{ flex: 1 }} />
+                        <button className="primary" onClick={() => chatNominiOzgartirish(c.id)}>OK</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button className="secondary" style={{ flex: 1 }} onClick={() => chatOchish(c.id)}>
+                          {c.title}
+                        </button>
+                        <button className="secondary" onClick={() => { setTahrirChatId(c.id); setTahrirNom(c.title); }}>✏️</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ minHeight: 300, maxHeight: 400, overflowY: "auto", border: "1px solid #ccc", padding: 8, borderRadius: 8 }}>
+                {chatXabarlar.map((m) => (
+                  <div key={m.id} style={{ marginBottom: 8, textAlign: m.role === "user" ? "right" : "left" }}>
+                    <strong>{m.role === "user" ? "Siz" : "AI"}:</strong> {m.content}
+                  </div>
+                ))}
+                {chatYuklanmoqda && <p>Yuklanmoqda...</p>}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Xabar yozing..." style={{ flex: 1 }} />
+                <button className="primary" onClick={chatXabarYuborish} disabled={chatYuklanmoqda}>Yuborish</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
-              <button
-                className="primary"
-                onClick={yangiFoydalanuvchiQoshish}
-              >
-                Foydalanuvchi qo‘shish
+      {sahifa === "test" && (
+        <section className="panel">
+          <h2>AI Test</h2>
+          {testSavollar.length === 0 && !testNatija && (
+            <div>
+              <p>Fan va sinf tanlang, so'ng test yarating.</p>
+              <button className="primary" onClick={async () => {
+                setTestYuklanmoqda(true);
+                try {
+                  const res = await fetch(`${API}/api/tests/generate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...authHeaders() },
+                    body: JSON.stringify({ fan, sinf: Number(sinf), count: 5, difficulty: "o'rta" })
+                  });
+                  const data = await res.json();
+                  if (res.ok) { setTestSavollar(data.tests || []); setTestIndex(0); setTestJavoblar({}); setTestNatija(null); }
+                  else setXato(data.error);
+                } catch (e) { setXato(e.message); }
+                finally { setTestYuklanmoqda(false); }
+              }} disabled={testYuklanmoqda}>
+                {testYuklanmoqda ? "Yaratilmoqda..." : "5 ta savolli test yaratish"}
               </button>
             </div>
-          ) : (
-            <p className="hint">
-              Sizga foydalanuvchi qo‘shish huquqi berilmagan.
-              EGA bilan bog‘laning.
-            </p>
           )}
-
-          {xato && <p className="error">{xato}</p>}
-          {xabarnoma && (
-            <p className="success">{xabarnoma}</p>
-          )}
-
-          <button
-            className="secondary"
-            onClick={foydalanuvchilarniYuklash}
-          >
-            Ro‘yxatni yangilash
-          </button>
-
-          <h3>Foydalanuvchilar</h3>
-
-          {foydalanuvchilar.length === 0 ? (
-            <p className="hint">
-              Hozircha ro‘yxatda foydalanuvchi yo‘q.
-            </p>
-          ) : (
-            <div className="admin-user-list">
-              {foydalanuvchilar.map((user) => (
-                <article className="history-item admin-user-row" key={user.id}>
-                  <div className="admin-user-meta">
-                    <strong>{user.username}</strong>
-                    <small>Email: {user.email || user.username}</small>
-                    <small>Ro‘yxatdan o‘tgan: {user.created_at ? new Date(user.created_at).toLocaleDateString("uz-UZ") : "-"}</small>
-                    <small>Tarif: {user.subscription_plan || "FREE"}</small>
-                  </div>
-                  <span className="admin-user-role">{user.role}</span>
-                </article>
+          {testSavollar.length > 0 && !testNatija && (
+            <div>
+              <p>Savol {testIndex + 1}/{testSavollar.length}</p>
+              <p><strong>{testSavollar[testIndex].question}</strong></p>
+              {Object.entries(testSavollar[testIndex].options || {}).map(([k, v]) => (
+                <button key={k} className={testJavoblar[testIndex] === k ? "primary" : "secondary"} style={{ display: "block", margin: "4px 0" }} onClick={() => setTestJavoblar((o) => ({ ...o, [testIndex]: k }))}>
+                  {k}. {v}
+                </button>
               ))}
+              <div style={{ marginTop: 8 }}>
+                <button className="secondary" onClick={() => setTestIndex((i) => Math.max(0, i - 1))}>Oldingi</button>
+                <button className="secondary" onClick={() => setTestIndex((i) => Math.min(testSavollar.length - 1, i + 1))}>Keyingi</button>
+                <button className="primary" onClick={async () => {
+                  let correct = 0; const wrong = [];
+                  testSavollar.forEach((q, i) => { if (testJavoblar[i] === q.correct) correct++; else wrong.push({ question: q.question, correct: q.correct, user: testJavoblar[i], explanation: q.explanation }); });
+                  const total = testSavollar.length;
+                  const percent = (correct / total) * 100;
+                  setTestNatija({ total, correct, wrong: total - correct, percent });
+                  await fetch(`${API}/api/tests/result`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ fan, sinf: Number(sinf), total, correct, wrong }) });
+                }}>Yakunlash</button>
+              </div>
+            </div>
+          )}
+          {testNatija && (
+            <div>
+              <h3>Natija</h3>
+              <p>Ball: {testNatija.correct}/{testNatija.total} ({testNatija.percent.toFixed(1)}%)</p>
+              <button className="secondary" onClick={() => { setTestSavollar([]); setTestNatija(null); setTestJavoblar({}); }}>Qayta</button>
             </div>
           )}
         </section>
       )}
 
-      {sahifa === "ega" && ega && (
+      {sahifa === "tarjimon" && (
         <section className="panel">
-          <h2>EGA boshqaruv paneli</h2>
+          <h2>AI Tarjimon</h2>
+          <textarea value={tarjimaMatn} onChange={(e) => setTarjimaMatn(e.target.value)} placeholder="Matn kiriting..." />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <select value="auto" onChange={() => {}}><option value="auto">Auto</option></select>
+            <select value="uz" onChange={() => {}}><option value="uz">O'zbek</option><option value="en">English</option><option value="ru">Русский</option></select>
+            <button className="primary" disabled={tarjimaYuklanmoqda} onClick={async () => {
+              setTarjimaYuklanmoqda(true);
+              try {
+                const res = await fetch(`${API}/api/translate`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ text: tarjimaMatn, from: "auto", to: "uz" }) });
+                const data = await res.json();
+                if (res.ok) setTarjimaNatija(data.translation); else setXato(data.error);
+              } catch (e) { setXato(e.message); }
+              finally { setTarjimaYuklanmoqda(false); }
+            }}>Tarjima</button>
+          </div>
+          {tarjimaNatija && <div style={{ marginTop: 8 }}><strong>Natija:</strong> {tarjimaNatija}</div>}
+        </section>
+      )}
 
-          <p className="hint">
-            Barcha foydalanuvchilarni boshqarish faqat EGA
-            vakolatida.
-          </p>
-
-          <div className="admin-add">
-            <h3>Foydalanuvchi qo‘shish</h3>
-
-            <input
-              placeholder="Yangi foydalanuvchi logini"
-              value={yangiUsername}
-              onChange={(e) =>
-                setYangiUsername(e.target.value)
-              }
-            />
-
-            <div className="password-box">
-              <input
-                type={
-                  yangiParolKorsat ? "text" : "password"
-                }
-                placeholder="Yangi foydalanuvchi paroli"
-                value={yangiPassword}
-                onChange={(e) =>
-                  setYangiPassword(e.target.value)
-                }
-              />
-
-              <button
-                type="button"
-                className="secondary"
-                onClick={() =>
-                  setYangiParolKorsat(!yangiParolKorsat)
-                }
-              >
-                {yangiParolKorsat
-                  ? "Yashirish"
-                  : "Ko‘rsatish"}
-              </button>
+      {sahifa === "profil" && (
+        <section className="panel">
+          <h2>Profil</h2>
+          <button className="secondary" onClick={async () => {
+            const r = await fetch(`${API}/api/profile`, { headers: authHeaders() });
+            const d = await r.json();
+            if (r.ok) { setProfil(d.profile); setProfilNom(d.profile.display_name || d.profile.username); setProfilSinf(d.profile.class_level || 1); }
+          }}>Yuklash</button>
+          {profil && (
+            <div style={{ marginTop: 8 }}>
+              <input value={profilNom} onChange={(e) => setProfilNom(e.target.value)} placeholder="Ism" />
+              <input type="number" value={profilSinf} onChange={(e) => setProfilSinf(Number(e.target.value))} min={1} max={11} />
+              <p>Ball: {profil.total_points}</p>
+              <p>Tarif: {profil.subscription_plan}</p>
+              <button className="primary" onClick={async () => {
+                await fetch(`${API}/api/profile`, { method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ display_name: profilNom, class_level: profilSinf }) });
+                setXato("");
+                setXabarnoma("Profil saqlandi.");
+              }}>Saqlash</button>
             </div>
-
-            <button
-              className="primary"
-              onClick={yangiFoydalanuvchiQoshish}
-            >
-              Foydalanuvchi qo‘shish
-            </button>
-          </div>
-
-          <div className="admin-add">
-            <h3>Admin tayinlash</h3>
-
-            <p className="hint">
-              Mavjud oddiy foydalanuvchining loginini kiriting.
-            </p>
-
-            <input
-              placeholder="Admin qilinadigan login"
-              value={adminUsername}
-              onChange={(e) =>
-                setAdminUsername(e.target.value)
-              }
-            />
-
-            <label className="permission-row">
-              <input
-                type="checkbox"
-                checked={canAddUsers}
-                onChange={(e) =>
-                  setCanAddUsers(e.target.checked)
-                }
-              />
-              Foydalanuvchi qo‘shish huquqi
-            </label>
-
-            <label className="permission-row">
-              <input
-                type="checkbox"
-                checked={canRequestGifts}
-                onChange={(e) =>
-                  setCanRequestGifts(e.target.checked)
-                }
-              />
-              Sovg‘a obunasi so‘rash huquqi
-            </label>
-
-            <button
-              className="primary"
-              onClick={adminHuquqiniBerish}
-            >
-              Admin huquqini berish
-            </button>
-          </div>
-
-          {xato && <p className="error">{xato}</p>}
-          {xabarnoma && (
-            <p className="success">{xabarnoma}</p>
           )}
+        </section>
+      )}
 
-          <button
-            className="secondary"
-            onClick={foydalanuvchilarniYuklash}
-          >
-            Ro‘yxatni yangilash
-          </button>
+      {sahifa === "statistika" && (
+        <section className="panel">
+          <h2>Statistika</h2>
+          {!statistika && <p>Yuklanmoqda...</p>}
+          {statistika && (
+            <div>
+              <p>Testlar: {statistika.totals.tests} | Jami savollar: {statistika.totals.total_q} | To'g'ri: {statistika.totals.correct_q} | O'rtacha: {Number(statistika.totals.avg_percent).toFixed(1)}%</p>
+              <div style={{ marginTop: 8 }}>
+                {statistika.byFan.map((f) => (
+                  <div key={f.fan} style={{ marginBottom: 4 }}>
+                    <span>{f.fan}: {Number(f.avg_percent).toFixed(1)}%</span>
+                    <div style={{ background: "#eee", height: 8, borderRadius: 4 }}>
+                      <div style={{ width: `${Math.min(100, Number(f.avg_percent))}%`, background: "#792cff", height: 8, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
-          <h3>Barcha foydalanuvchilar</h3>
+      {sahifa === "kunlik" && (
+        <section className="panel">
+          <h2>Kunlik vazifalar</h2>
+          <button className="secondary" onClick={async () => {
+            await fetch(`${API}/api/daily-tasks/recommend`, { method: "POST", headers: authHeaders() });
+            const r = await fetch(`${API}/api/daily-tasks`, { headers: authHeaders() });
+            const d = await r.json();
+            setKunlikVazifalar(d.tasks || []);
+          }}>AI tavsiya</button>
+          {kunlikVazifalar.length === 0 && <p>Vazifalar yo'q.</p>}
+          {kunlikVazifalar.map((v) => (
+            <div key={v.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ textDecoration: v.done ? "line-through" : "none" }}>{v.title} ({v.fan})</span>
+              <button className="secondary" onClick={async () => {
+                await fetch(`${API}/api/daily-tasks/${v.id}`, { method: "PUT", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ done: !v.done }) });
+                setKunlikVazifalar((old) => old.map((x) => (x.id === v.id ? { ...x, done: !x.done } : x)));
+              }}>{v.done ? "Bajarilmagan" : "Bajarildi"}</button>
+            </div>
+          ))}
+        </section>
+      )}
 
-          {foydalanuvchilar.map((user) => {
-            let perms = {};
+      {sahifa === "xatolar" && (
+        <section className="panel">
+          <h2>Xatolar tahlili</h2>
+          {xatolar.length === 0 && <p>Xatolar yo'q.</p>}
+          {xatolar.map((x) => (
+            <div key={x.id} style={{ marginBottom: 10, borderBottom: "1px solid #eee", paddingBottom: 6 }}>
+              <p><strong>Savol:</strong> {x.question}</p>
+              <p><strong>To'g'ri:</strong> {x.correct_answer}</p>
+              <p><strong>Sizning:</strong> {x.user_answer}</p>
+              <p><strong>Izoh:</strong> {x.explanation}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
-            try {
-              perms = JSON.parse(user.permissions || "{}");
-            } catch {
-              perms = {};
-            }
+      {sahifa === "yutuqlar" && (
+        <section className="panel">
+          <h2>Yutuqlar</h2>
+          {yutuqlar.length === 0 && <p>Yutuqlar yo'q.</p>}
+          {yutuqlar.map((y) => (
+            <div key={y.key} style={{ marginBottom: 6 }}>
+              <span>{y.unlocked ? "✅" : "🔒"} {y.title}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
-            return (
-              <article
-                className="history-item"
-                key={user.id}
-              >
+      {sahifa === "admin" && admin && (
+        <section className="panel dashboard-panel admin-dashboard">
+          <div className="dashboard-shell">
+            <aside className="dashboard-sidebar">
+              <div className="sidebar-brand">
+                <span className="brand-badge">AI</span>
                 <div>
-                  <strong>{user.username}</strong>
+                  <strong>Admin</strong>
+                  <small>Control center</small>
+                </div>
+              </div>
 
-                  <small>
-                    Rol: {user.role}
-                    {user.created_by
-                      ? ` · Qo‘shgan foydalanuvchi ID: ${user.created_by}`
-                      : ""}
-                  </small>
+              <nav className="dashboard-nav">
+                <button type="button" className="nav-item active">Umumiy ko‘rinish</button>
+                <button type="button" className="nav-item" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
+              </nav>
+            </aside>
 
-                  {user.role === "admin" && (
-                    <small>
-                      Foydalanuvchi qo‘shish:{" "}
-                      {perms.canAddUsers ? "Ha" : "Yo‘q"}
-                      {" · "}
-                      Sovg‘a so‘rash:{" "}
-                      {perms.canRequestGifts ? "Ha" : "Yo‘q"}
-                    </small>
-                  )}
+            <div className="dashboard-main">
+              <header className="dashboard-header">
+                <div>
+                  <p className="eyebrow">Admin panel</p>
+                  <h2>Foydalanuvchilar boshqaruvi</h2>
+                </div>
+                <button className="secondary" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
+              </header>
+
+              <div className="stats-grid">
+                <article className="stat-card primary">
+                  <span className="stat-label">Jami foydalanuvchilar</span>
+                  <strong>{totalUsers}</strong>
+                  <small>Ro‘yxatdagi foydalanuvchilar</small>
+                </article>
+                <article className="stat-card violet">
+                  <span className="stat-label">Adminlar</span>
+                  <strong>{adminUsers}</strong>
+                  <small>Haqiqiy boshqaruvchilar</small>
+                </article>
+                <article className="stat-card green">
+                  <span className="stat-label">FREE</span>
+                  <strong>{freeUsers}</strong>
+                  <small>Bepul obuna foydalanuvchilari</small>
+                </article>
+                <article className="stat-card amber">
+                  <span className="stat-label">Pulli tarif</span>
+                  <strong>{paidUsers}</strong>
+                  <small>PRO / PRO MAX obunalari</small>
+                </article>
+              </div>
+
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Foydalanuvchi qo‘shish</h3>
                 </div>
 
-                {user.role === "admin" && (
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      adminHuquqiniBekorQilish(user)
-                    }
-                  >
-                    Adminlikni bekor qilish
-                  </button>
+                {ruxsat.canAddUsers === true ? (
+                  <div className="compact-form">
+                    <input
+                      placeholder="Yangi foydalanuvchi logini"
+                      value={yangiUsername}
+                      onChange={(e) => setYangiUsername(e.target.value)}
+                    />
+
+                    <div className="password-box">
+                      <input
+                        type={yangiParolKorsat ? "text" : "password"}
+                        placeholder="Yangi foydalanuvchi paroli"
+                        value={yangiPassword}
+                        onChange={(e) => setYangiPassword(e.target.value)}
+                      />
+
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setYangiParolKorsat(!yangiParolKorsat)}
+                      >
+                        {yangiParolKorsat ? "Yashirish" : "Ko‘rsatish"}
+                      </button>
+                    </div>
+
+                    <button className="primary" onClick={yangiFoydalanuvchiQoshish}>
+                      Foydalanuvchi qo‘shish
+                    </button>
+                  </div>
+                ) : (
+                  <p className="hint">
+                    Sizga foydalanuvchi qo‘shish huquqi berilmagan. EGA bilan bog‘laning.
+                  </p>
                 )}
 
-                {user.role !== "owner" && (
-                  <button
-                    className="delete"
-                    onClick={() =>
-                      foydalanuvchiniOchirish(user)
-                    }
-                    disabled={ochirilayotganId === user.id}
-                  >
-                    {ochirilayotganId === user.id
-                      ? "O‘chirilmoqda..."
-                      : "O‘chirish"}
-                  </button>
+                {xato && <p className="error">{xato}</p>}
+                {xabarnoma && <p className="success">{xabarnoma}</p>}
+              </div>
+
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Ro‘yxat</h3>
+                  <div className="search-box">
+                    <span>⌕</span>
+                    <input
+                      value={dashboardSearch}
+                      onChange={(e) => setDashboardSearch(e.target.value)}
+                      placeholder="Foydalanuvchi yoki tarif qidiring"
+                    />
+                  </div>
+                </div>
+
+                {filteredUsers.length === 0 ? (
+                  <p className="hint">Hozircha mos foydalanuvchi topilmadi.</p>
+                ) : (
+                  <div className="admin-user-list">
+                    {filteredUsers.map((user) => (
+                      <article className="user-row" key={user.id}>
+                        <div className="user-main">
+                          <div className="user-avatar">{(user.username || "U").charAt(0).toUpperCase()}</div>
+                          <div>
+                            <strong>{user.username}</strong>
+                            <small>{user.email || "Email yo‘q"}</small>
+                          </div>
+                        </div>
+
+                        <div className="user-meta">
+                          <span>{user.subscription_plan || "FREE"}</span>
+                          <small>{user.created_at ? new Date(user.created_at).toLocaleDateString("uz-UZ") : "-"}</small>
+                        </div>
+
+                        <span className={`role-badge ${String(user.role || "user").toLowerCase()}`}>
+                          {user.role}
+                        </span>
+                      </article>
+                    ))}
+                  </div>
                 )}
-              </article>
-            );
-          })}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {sahifa === "ega" && ega && (
+        <section className="panel dashboard-panel ega-dashboard">
+          <div className="dashboard-shell">
+            <aside className="dashboard-sidebar">
+              <div className="sidebar-brand">
+                <span className="brand-badge accent">E</span>
+                <div>
+                  <strong>EGA</strong>
+                  <small>Owner access</small>
+                </div>
+              </div>
+
+              <nav className="dashboard-nav">
+                <button type="button" className="nav-item active">Umumiy ko‘rinish</button>
+                <button type="button" className="nav-item" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
+              </nav>
+            </aside>
+
+            <div className="dashboard-main">
+              <header className="dashboard-header">
+                <div>
+                  <p className="eyebrow">EGA boshqaruv paneli</p>
+                  <h2>Platforma holati</h2>
+                </div>
+                <button className="secondary" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
+              </header>
+
+              <div className="stats-grid">
+                <article className="stat-card primary">
+                  <span className="stat-label">Jami foydalanuvchilar</span>
+                  <strong>{totalUsers}</strong>
+                  <small>Ro‘yxatda mavjud</small>
+                </article>
+                <article className="stat-card violet">
+                  <span className="stat-label">Adminlar</span>
+                  <strong>{adminUsers}</strong>
+                  <small>Admin huquqiga ega</small>
+                </article>
+                <article className="stat-card green">
+                  <span className="stat-label">FREE</span>
+                  <strong>{freeUsers}</strong>
+                  <small>Bepul hisoblar</small>
+                </article>
+                <article className="stat-card amber">
+                  <span className="stat-label">Pulli hisoblar</span>
+                  <strong>{paidUsers}</strong>
+                  <small>PRO statistikasi</small>
+                </article>
+              </div>
+
+              <div className="dashboard-grid two-col">
+                <div className="dashboard-card">
+                  <div className="card-header">
+                    <h3>Foydalanuvchi qo‘shish</h3>
+                  </div>
+
+                  <div className="compact-form">
+                    <input
+                      placeholder="Yangi foydalanuvchi logini"
+                      value={yangiUsername}
+                      onChange={(e) => setYangiUsername(e.target.value)}
+                    />
+
+                    <div className="password-box">
+                      <input
+                        type={yangiParolKorsat ? "text" : "password"}
+                        placeholder="Yangi foydalanuvchi paroli"
+                        value={yangiPassword}
+                        onChange={(e) => setYangiPassword(e.target.value)}
+                      />
+
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setYangiParolKorsat(!yangiParolKorsat)}
+                      >
+                        {yangiParolKorsat ? "Yashirish" : "Ko‘rsatish"}
+                      </button>
+                    </div>
+
+                    <button className="primary" onClick={yangiFoydalanuvchiQoshish}>
+                      Foydalanuvchi qo‘shish
+                    </button>
+                  </div>
+                </div>
+
+                <div className="dashboard-card">
+                  <div className="card-header">
+                    <h3>Admin tayinlash</h3>
+                  </div>
+
+                  <div className="compact-form">
+                    <input
+                      placeholder="Admin qilinadigan login"
+                      value={adminUsername}
+                      onChange={(e) => setAdminUsername(e.target.value)}
+                    />
+
+                    <label className="permission-row">
+                      <input
+                        type="checkbox"
+                        checked={canAddUsers}
+                        onChange={(e) => setCanAddUsers(e.target.checked)}
+                      />
+                      Foydalanuvchi qo‘shish huquqi
+                    </label>
+
+                    <label className="permission-row">
+                      <input
+                        type="checkbox"
+                        checked={canRequestGifts}
+                        onChange={(e) => setCanRequestGifts(e.target.checked)}
+                      />
+                      Sovg‘a so‘rash huquqi
+                    </label>
+
+                    <button className="primary" onClick={adminHuquqiniBerish}>
+                      Admin huquqini berish
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {xato && <p className="error">{xato}</p>}
+              {xabarnoma && <p className="success">{xabarnoma}</p>}
+
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Barcha foydalanuvchilar</h3>
+                  <div className="search-box">
+                    <span>⌕</span>
+                    <input
+                      value={dashboardSearch}
+                      onChange={(e) => setDashboardSearch(e.target.value)}
+                      placeholder="Qidiruv..."
+                    />
+                  </div>
+                </div>
+
+                {filteredUsers.length === 0 ? (
+                  <p className="hint">Mos foydalanuvchi topilmadi.</p>
+                ) : (
+                  <div className="admin-user-list">
+                    {filteredUsers.map((user) => {
+                      let perms = {};
+
+                      try {
+                        perms = JSON.parse(user.permissions || "{}");
+                      } catch {
+                        perms = {};
+                      }
+
+                      return (
+                        <article className="user-row user-row-compact" key={user.id}>
+                          <div className="user-main">
+                            <div className="user-avatar">{(user.username || "U").charAt(0).toUpperCase()}</div>
+                            <div>
+                              <strong>{user.username}</strong>
+                              <small>{user.email || "Email yo‘q"}</small>
+                            </div>
+                          </div>
+
+                          <div className="user-meta">
+                            <span>{user.role}</span>
+                            <small>{user.subscription_plan || "FREE"}</small>
+                          </div>
+
+                          {user.role === "admin" && (
+                            <div className="permission-note">
+                              <small>
+                                Qo‘shish: {perms.canAddUsers ? "Ha" : "Yo‘q"}
+                              </small>
+                              <small>
+                                Sovg‘a: {perms.canRequestGifts ? "Ha" : "Yo‘q"}
+                              </small>
+                            </div>
+                          )}
+
+                          <div className="user-actions">
+                            {user.role === "admin" && (
+                              <button
+                                className="secondary"
+                                onClick={() => adminHuquqiniBekorQilish(user)}
+                              >
+                                Bekor qilish
+                              </button>
+                            )}
+
+                            {user.role !== "owner" && (
+                              <button
+                                className="delete"
+                                onClick={() => foydalanuvchiniOchirish(user)}
+                                disabled={ochirilayotganId === user.id}
+                              >
+                                {ochirilayotganId === user.id ? "O‘chirilmoqda..." : "O‘chirish"}
+                              </button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </section>
       )}
 
