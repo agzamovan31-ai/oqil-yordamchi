@@ -23,8 +23,16 @@ if (process.env.OWNER_PASSWORD.length < 12) {
   throw new Error("EGA paroli kamida 12 ta belgidan iborat bo‘lsin.");
 }
 
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173,https://oqilai.netlify.app,https://curious-queijadas-58749b.netlify.app")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error("CORS: ruxsat yo'q"));
+  }
 }));
 
 app.use(express.json({ limit: "8mb" }));
