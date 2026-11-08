@@ -1563,3 +1563,11 @@ footer {
 }
 .chat-layout { display: flex; gap: 12px; }
 @media (max-width: 640px) { .chat-layout { flex-direction: column; } .chat-layout > div:first-child { width: 100% !important; } }
+
+
+/* EGA dashboard polish */
+.ega-dashboard .dashboard-card { transition: transform .15s ease, box-shadow .15s ease; }
+.ega-dashboard .dashboard-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+.ega-dashboard .user-row { align-items: center; }
+.ega-dashboard .user-actions button { margin-left: 6px; }
+@media (max-width: 768px) { .ega-dashboard .dashboard-grid { grid-template-columns: 1fr; } }
