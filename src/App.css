@@ -1571,3 +1571,305 @@ footer {
 .ega-dashboard .user-row { align-items: center; }
 .ega-dashboard .user-actions button { margin-left: 6px; }
 @media (max-width: 768px) { .ega-dashboard .dashboard-grid { grid-template-columns: 1fr; } }
+
+
+/* EGA panel redesign */
+.ega-panel-redesign {
+  --ega-accent: #6366f1;
+}
+
+.ega-panel-redesign .ega-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(79, 70, 229, 0.25);
+  margin-bottom: 20px;
+}
+
+.ega-panel-redesign .ega-header .eyebrow,
+.ega-panel-redesign .ega-header h2,
+.ega-panel-redesign .ega-header small {
+  color: #fff;
+  margin: 0;
+}
+
+.ega-panel-redesign .ega-header .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.ega-panel-redesign .ega-header h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+}
+
+.ega-panel-redesign .ega-header-subtitle {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.ega-panel-redesign .ega-header button {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ega-panel-redesign .ega-header button:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.ega-panel-redesign .ega-header button:active {
+  transform: translateY(0);
+}
+
+.ega-panel-redesign .stats-grid.ega-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ega-panel-redesign .stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.ega-panel-redesign .stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--ega-accent);
+}
+
+.ega-panel-redesign .stat-card.primary::before { background: #6366f1; }
+.ega-panel-redesign .stat-card.violet::before { background: #a855f7; }
+.ega-panel-redesign .stat-card.green::before { background: #22c55e; }
+.ega-panel-redesign .stat-card.amber::before { background: #f59e0b; }
+
+.ega-panel-redesign .stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.ega-panel-redesign .stat-card::after {
+  content: "📊";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 20px;
+  opacity: 0.18;
+}
+
+.ega-panel-redesign .stat-card.violet::after { content: "🛡️"; }
+.ega-panel-redesign .stat-card.green::after { content: "🆓"; }
+.ega-panel-redesign .stat-card.amber::after { content: "💎"; }
+
+.ega-panel-redesign .stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ega-panel-redesign .stat-card strong {
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.ega-panel-redesign .stat-card small {
+  color: #475569;
+  font-size: 13px;
+}
+
+.ega-panel-redesign .dashboard-grid.two-col {
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.ega-panel-redesign .dashboard-card {
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  padding: 20px;
+  transition: box-shadow 0.18s ease;
+}
+
+.ega-panel-redesign .dashboard-card:hover {
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.ega-panel-redesign .card-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ega-panel-redesign .compact-form input,
+.ega-panel-redesign .search-box input {
+  border-radius: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ega-panel-redesign .compact-form button,
+.ega-panel-redesign .user-actions button {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.ega-panel-redesign .compact-form button:hover,
+.ega-panel-redesign .user-actions button:hover {
+  transform: translateY(-1px);
+}
+
+.ega-panel-redesign .compact-form button:active,
+.ega-panel-redesign .user-actions button:active {
+  transform: translateY(0);
+}
+
+.ega-panel-redesign .primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+}
+
+.ega-panel-redesign .secondary {
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+}
+
+.ega-panel-redesign .delete {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.ega-panel-redesign .user-row {
+  grid-template-columns: minmax(0, 1.6fr) minmax(90px, 0.9fr) minmax(0, 1.1fr) auto;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ega-panel-redesign .user-row:hover {
+  background: #eef2ff;
+  transform: translateX(2px);
+}
+
+.ega-panel-redesign .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  flex-shrink: 0;
+}
+
+.ega-panel-redesign .user-main strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ega-panel-redesign .user-main small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ega-panel-redesign .user-meta span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ega-panel-redesign .user-meta small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ega-panel-redesign .role-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ega-panel-redesign .permission-note {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.ega-panel-redesign .admin-user-list {
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .ega-panel-redesign .stats-grid.ega-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ega-panel-redesign .dashboard-grid.two-col {
+    grid-template-columns: 1fr;
+  }
+  .ega-panel-redesign .user-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ega-panel-redesign .user-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .ega-panel-redesign .stats-grid.ega-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .ega-panel-redesign .ega-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

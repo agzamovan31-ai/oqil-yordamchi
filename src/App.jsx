@@ -1924,7 +1924,7 @@ function App() {
                 <button className="secondary" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
               </header>
 
-              <div className="stats-grid">
+              <div className="stats-grid ega-stats-grid">
                 <article className="stat-card primary">
                   <span className="stat-label">Jami foydalanuvchilar</span>
                   <strong>{totalUsers}</strong>
@@ -2037,7 +2037,7 @@ function App() {
       )}
 
       {sahifa === "ega" && ega && (
-        <section className="panel dashboard-panel ega-dashboard">
+        <section className="panel dashboard-panel ega-dashboard ega-panel-redesign">
           <div className="dashboard-shell">
             <aside className="dashboard-sidebar">
               <div className="sidebar-brand">
@@ -2055,15 +2055,16 @@ function App() {
             </aside>
 
             <div className="dashboard-main">
-              <header className="dashboard-header">
-                <div>
+              <header className="dashboard-header ega-header">
+                <div className="ega-header-title">
                   <p className="eyebrow">EGA boshqaruv paneli</p>
                   <h2>Platforma holati</h2>
+                  <small className="ega-header-subtitle">Foydalanuvchilar, adminlar va obunalar nazorati</small>
                 </div>
                 <button className="secondary" onClick={foydalanuvchilarniYuklash}>Yangilash</button>
               </header>
 
-              <div className="stats-grid">
+              <div className="stats-grid ega-stats-grid">
                 <article className="stat-card primary">
                   <span className="stat-label">Jami foydalanuvchilar</span>
                   <strong>{totalUsers}</strong>
