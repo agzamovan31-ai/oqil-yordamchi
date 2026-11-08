@@ -1683,6 +1683,7 @@ function App() {
       {sahifa === "chat" && (
         <section className="panel">
           <h2>AI Chat</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           <div className="chat-layout" style={{ display: "flex", gap: 12 }}>
             <div style={{ width: 200 }}>
               <button className="primary" onClick={yangiChat}>Yangi suhbat</button>
@@ -1727,6 +1728,7 @@ function App() {
       {sahifa === "test" && (
         <section className="panel">
           <h2>AI Test</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           {testSavollar.length === 0 && !testNatija && (
             <div>
               <p>Fan va sinf tanlang, so'ng test yarating.</p>
@@ -1784,6 +1786,7 @@ function App() {
       {sahifa === "tarjimon" && (
         <section className="panel">
           <h2>AI Tarjimon</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           <textarea value={tarjimaMatn} onChange={(e) => setTarjimaMatn(e.target.value)} placeholder="Matn kiriting..." />
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <select value="auto" onChange={() => {}}><option value="auto">Auto</option></select>
@@ -1805,6 +1808,7 @@ function App() {
       {sahifa === "profil" && (
         <section className="panel">
           <h2>Profil</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           <button className="secondary" onClick={async () => {
             const r = await fetch(`${API}/api/profile`, { headers: authHeaders() });
             const d = await r.json();
@@ -1829,6 +1833,7 @@ function App() {
       {sahifa === "statistika" && (
         <section className="panel">
           <h2>Statistika</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           {!statistika && <p>Yuklanmoqda...</p>}
           {statistika && (
             <div>
@@ -1851,6 +1856,7 @@ function App() {
       {sahifa === "kunlik" && (
         <section className="panel">
           <h2>Kunlik vazifalar</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           <button className="secondary" onClick={async () => {
             await fetch(`${API}/api/daily-tasks/recommend`, { method: "POST", headers: authHeaders() });
             const r = await fetch(`${API}/api/daily-tasks`, { headers: authHeaders() });
@@ -1873,6 +1879,7 @@ function App() {
       {sahifa === "xatolar" && (
         <section className="panel">
           <h2>Xatolar tahlili</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           {xatolar.length === 0 && <p>Xatolar yo'q.</p>}
           {xatolar.map((x) => (
             <div key={x.id} style={{ marginBottom: 10, borderBottom: "1px solid #eee", paddingBottom: 6 }}>
@@ -1888,6 +1895,7 @@ function App() {
       {sahifa === "yutuqlar" && (
         <section className="panel">
           <h2>Yutuqlar</h2>
+          <button className="secondary" onClick={() => setSahifa("asosiy")} style={{ marginBottom: 12 }}>← Asosiy AI ga qaytish</button>
           {yutuqlar.length === 0 && <p>Yutuqlar yo'q.</p>}
           {yutuqlar.map((y) => (
             <div key={y.key} style={{ marginBottom: 6 }}>
