@@ -1341,31 +1341,31 @@ function App() {
           AI Chat
         </button>
 
-        <button className="secondary" onClick={() => setSahifa("test")}>
+        <button type="button" className="secondary" onClick={() => setSahifa("test")}>
           Test
         </button>
 
-        <button className="secondary" onClick={() => setSahifa("tarjimon")}>
+        <button type="button" className="secondary" onClick={() => setSahifa("tarjimon")}>
           Tarjimon
         </button>
 
-        <button className="secondary" onClick={() => setSahifa("profil")}>
+        <button type="button" className="secondary" onClick={() => setSahifa("profil")}>
           Profil
         </button>
 
-        <button className="secondary" onClick={() => { setSahifa("kunlik"); fetch(`${API}/api/daily-tasks`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setKunlikVazifalar(d.tasks||[])).catch(()=>{}); }}>
+        <button type="button" className="secondary" onClick={() => { setSahifa("kunlik"); fetch(`${API}/api/daily-tasks`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setKunlikVazifalar(d.tasks||[])).catch(()=>{}); }}>
           Kunlik
         </button>
 
-        <button className="secondary" onClick={() => { setSahifa("xatolar"); fetch(`${API}/api/errors`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setXatolar(d.errors||[])).catch(()=>{}); }}>
+        <button type="button" className="secondary" onClick={() => { setSahifa("xatolar"); fetch(`${API}/api/errors`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setXatolar(d.errors||[])).catch(()=>{}); }}>
           Xatolar
         </button>
 
-        <button className="secondary" onClick={() => { setSahifa("yutuqlar"); fetch(`${API}/api/achievements`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setYutuqlar(d.achievements||[])).catch(()=>{}); }}>
+        <button type="button" className="secondary" onClick={() => { setSahifa("yutuqlar"); fetch(`${API}/api/achievements`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setYutuqlar(d.achievements||[])).catch(()=>{}); }}>
           Yutuqlar
         </button>
 
-        <button className="secondary" onClick={() => { setSahifa("statistika"); fetch(`${API}/api/stats`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setStatistika(d)).catch(()=>{}); }}>
+        <button type="button" className="secondary" onClick={() => { setSahifa("statistika"); fetch(`${API}/api/stats`, { headers: authHeaders() }).then(r=>r.json()).then(d=>setStatistika(d)).catch(()=>{}); }}>
           Statistika
         </button>
 
