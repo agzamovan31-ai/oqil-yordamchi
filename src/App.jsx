@@ -75,9 +75,9 @@ const FANLAR = [
   { nom: "Informatika", icon: "💻" },
 ];
 const PLAN_LIMITS = {
-  FREE: 6,
+  FREE: 7,
   PRO: 7,
-  "PRO MAX": 11,
+  "PRO MAX": 11
 };
 
 function getMaxAllowedClassForPlan(plan) {

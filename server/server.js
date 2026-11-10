@@ -34,7 +34,7 @@ const pool = new Pool({
 });
 
 const PLAN_LIMITS = {
-  FREE: 6,
+  FREE: 7,
   PRO: 7,
   "PRO MAX": 11
 };
@@ -72,7 +72,7 @@ function getMaxAllowedClassForPlan(plan) {
   return PLAN_LIMITS[normalizedPlan] ?? PLAN_LIMITS.FREE;
 }
 
-function validateQuestionAccess({ plan, classLevel }) {
+function validateQuestionAccess({ plan, classLevel, userRole }) {
   const grade = Number(classLevel);
 
   if (!Number.isInteger(grade) || grade < 1 || grade > 11) {
@@ -80,6 +80,11 @@ function validateQuestionAccess({ plan, classLevel }) {
       allowed: false,
       error: "Sinf raqami 1 dan 11 gacha bo‘lishi kerak."
     };
+  }
+
+  // EGA va Admin uchun cheklovsiz ruxsat
+  if (userRole === "owner" || userRole === "admin") {
+    return { allowed: true };
   }
 
   const maxClass = getMaxAllowedClassForPlan(plan);
@@ -598,9 +603,9 @@ app.post("/api/auth/subscription", tekshirish, async (req, res) => {
       });
     }
 
-    if (!Number.isInteger(classLevel) || classLevel < 1 || classLevel > 6) {
+    if (!Number.isInteger(classLevel) || classLevel < 1 || classLevel > 7) {
       return res.status(400).json({
-        error: "FREE tarif uchun sinf raqami 1 dan 6 gacha bo‘lishi kerak."
+        error: "FREE tarif uchun sinf raqami 1 dan 7 gacha bo‘lishi kerak."
       });
     }
 
@@ -1048,9 +1053,11 @@ app.post("/api/savol", tekshirish, async (req, res) => {
     const rasm = req.body?.rasm;
     const classLevel = Number(req.body?.class_level ?? req.user.class_level ?? 1);
     const selectedPlan = normalizeSubscriptionPlan(req.user.subscription_plan);
+    const userRole = req.user.role;
     const accessCheck = validateQuestionAccess({
       plan: selectedPlan,
-      classLevel
+      classLevel,
+      userRole
     });
 
     if (!accessCheck.allowed) {
@@ -1497,7 +1504,8 @@ app.post("/api/tests/generate", tekshirish, async (req, res) => {
     }
 
     const plan = normalizeSubscriptionPlan(req.user.subscription_plan);
-    const accessCheck = validateQuestionAccess({ plan, classLevel: grade });
+    const userRole = req.user.role;
+    const accessCheck = validateQuestionAccess({ plan, classLevel: grade, userRole });
     if (!accessCheck.allowed) {
       return res.status(403).json({ error: accessCheck.error });
     }
